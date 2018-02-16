@@ -16,6 +16,8 @@ def parse(s):
 
 pygame.init()
 
+#kek
+
 
 class Health:
     def __init__(self):
