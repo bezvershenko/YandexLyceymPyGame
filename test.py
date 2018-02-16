@@ -250,6 +250,7 @@ class Background:
         if self.x >= -(len(main_arr[0]) * 32 - 700):
             self.x -= 1
 
+
     def render(self):
         screen.blit(self.img, (self.x, self.y))
 
