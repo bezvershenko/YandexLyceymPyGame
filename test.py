@@ -14,9 +14,17 @@ def parse(s):
     return list(x)
 
 
+def step_able(z):
+    f1 = main_arr[z.y + 1][int(z.x + z.d)] not in [0, 2783] and main_arr[z.y + 1][int(z.x + z.d) + 1] not in [0, 2783]
+    f2 = main_arr[z.y][int(z.x + z.d)] in [0] and main_arr[z.y][int(z.x + z.d) + 1] in [0]
+    f3 = main_arr[z.y - 1][int(z.x + z.d)] in [0] and main_arr[z.y - 1][int(z.x + z.d) + 1] in [0]
+    return f1 and f2 and f3
+
+
 pygame.init()
 
-#kek
+
+# kek
 
 
 class Health:
@@ -128,9 +136,7 @@ class Zombie(pygame.sprite.Sprite):
             if self.x + self.d <= 0:
                 self.d *= -1
                 return
-            if main_arr[self.y + 1][int(self.x + self.d)] not in [0, 2783] and main_arr[self.y + 1][
-                        int(self.x + self.d) + 1] not in [0,
-                                                          2783]:  # and main_arr[self.y // 32][self.x // 32 + int(self.d)] == 0 and main_arr[self.y // 32 - 1][self.x // 32 + int(self.d)] == 0:
+            if step_able(self):
                 self.x += self.d
 
                 self.rect.x = self.x * 32 + self.moving
@@ -345,7 +351,6 @@ while running:
         c = cursor.get_rect().width
         screen.blit(cursor, (x - c // 2, y - c // 2))
     gui.update()
-
     pygame.display.flip()
     clock.tick(30)
 pygame.mixer.quit()
