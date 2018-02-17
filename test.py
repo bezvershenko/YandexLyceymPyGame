@@ -27,6 +27,39 @@ def step_able(z):
 pygame.init()
 
 
+def terminate():
+    pygame.quit()
+    sys.exit();
+
+
+def startScreen():
+    # здесь можно вывести красивую картинку
+    # ...
+
+    introText = ["ЗАСТАВКА", "", 'надо засунуть сюда кнопки', 'и картиночку какую-нить']
+
+    screen.fill(pygame.Color('blue'))
+    font = pygame.font.Font(None, 30)
+    textCoord = 50
+    for line in introText:
+        stringRendered = font.render(line, 1, pygame.Color('white'))
+        introRect = stringRendered.get_rect()
+        textCoord += 10
+        introRect.top = textCoord
+        introRect.x = 10
+        textCoord += introRect.height
+        screen.blit(stringRendered, introRect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(30)
+
+
 # kek
 
 
@@ -271,7 +304,6 @@ class Background:
             self.rep = False
             gui.zero()
 
-
     def render(self):
         screen.blit(self.img, (self.x, self.y))
         if self.rep:
@@ -346,6 +378,7 @@ pygame.mixer.music.set_volume(0.5)
 soundtrack = pygame.mixer.music.load('music/soundtrack.mp3')
 pygame.mixer.music.play()
 
+startScreen()
 while running:
     screen.fill(pygame.Color('white'))
 
