@@ -15,6 +15,9 @@ def parse(s):
 
 
 def step_able(z):
+    f0 = int(z.x + z.d) + 1 < len(main_arr[0])
+    if not f0:
+        return False
     f1 = main_arr[z.y + 1][int(z.x + z.d)] not in [0, 2783] and main_arr[z.y + 1][int(z.x + z.d) + 1] not in [0, 2783]
     f2 = main_arr[z.y][int(z.x + z.d)] in [0] and main_arr[z.y][int(z.x + z.d) + 1] in [0]
     f3 = main_arr[z.y - 1][int(z.x + z.d)] in [0] and main_arr[z.y - 1][int(z.x + z.d) + 1] in [0]
@@ -143,6 +146,7 @@ class Zombie(pygame.sprite.Sprite):
                 if self.rect.x < 0 and self.damage:
                     health.damage()
                     self.damage = False
+                    self.stage += 1
                 if self.rect.x > 0:
                     self.damage = True
 
@@ -239,19 +243,45 @@ class GUI:
                 self.elements.pop(i)
                 break
 
+    def zero(self):
+        for element in self.elements:
+            zero = getattr(element, "zero", None)
+            if callable(zero):
+                element.zero()
+
 
 class Background:
     def __init__(self, x, y, img):
         self.x = x
         self.y = y
         self.img = img
+        self.rep = False
 
     def move_cam(self):
-        if self.x >= -(len(main_arr[0]) * 32 - 700):
+        if self.x > -(len(main_arr[0]) * 32 - 700):
             self.x -= 1
+        elif self.x == -(len(main_arr[0]) * 32 - 700):
+            self.rep = True
+            self.x -= 1
+        elif -(len(main_arr[0]) * 32 - 700) > self.x > -(len(main_arr[0]) * 32):
+            self.x -= 1
+            self.rep = True
+        else:
+            self.x += len(main_arr[0]) * 32
+            self.rep = False
+            gui.zero()
+
 
     def render(self):
         screen.blit(self.img, (self.x, self.y))
+        if self.rep:
+            screen.blit(self.img, (self.x + len(main_arr[0]) * 32, self.y))
+
+    def zero(self):
+        self.rep = False
+        self.x = 0
+        spawn_z(all_sprites)
+        print('yay')
 
 
 def find_up(g):
