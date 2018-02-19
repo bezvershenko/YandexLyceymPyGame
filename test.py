@@ -42,13 +42,14 @@ class Background:
         if self.rep:
             screen.blit(self.img, (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
+
     def zero(self):
         self.rep = False
         self.x = 0
         spawn_z(all_sprites)
         global cam_speed
         if cam_speed < 4:
-            cam_speed += 1
+            cam_speed += 0.6
 
 
 class GUI:
@@ -413,7 +414,8 @@ buttons.add(pause)
 buttons.add(mute)
 pygame.mixer.init()
 
-cam_speed = 1
+
+cam_speed = 2
 frequency = 7
 
 all_sprites = pygame.sprite.Group()
@@ -478,4 +480,3 @@ while running:
     pygame.display.flip()
     clock.tick(30)
 pygame.mixer.quit()
-print('testing')
