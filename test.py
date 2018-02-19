@@ -42,6 +42,7 @@ class Background:
         if self.rep:
             screen.blit(self.img, (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
+
     def zero(self):
         self.rep = False
         self.x = 0
@@ -478,4 +479,3 @@ while running:
     pygame.display.flip()
     clock.tick(30)
 pygame.mixer.quit()
-print('testing')
