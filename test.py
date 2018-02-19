@@ -46,6 +46,9 @@ class Background:
         self.rep = False
         self.x = 0
         spawn_z(all_sprites)
+        global cam_speed
+        if cam_speed < 4:
+            cam_speed += 1
 
 
 class GUI:
@@ -368,11 +371,14 @@ def find_zy(g):
 
 
 def spawn_z(all_sprites):
-    for i in range(10, len(main_arr[0]), 5):
+    global frequency
+    for i in range(10, len(main_arr[0]), int(frequency)):
         y = find_zy(i)
         if y is None:
             continue
         gui.add_element(Zombie(i, y, all_sprites))
+    if frequency > 3:
+        frequency -= 0.5
 
 
 def find_y(d):
@@ -406,6 +412,9 @@ buttons = Buttons()
 buttons.add(pause)
 buttons.add(mute)
 pygame.mixer.init()
+
+cam_speed = 1
+frequency = 7
 
 all_sprites = pygame.sprite.Group()
 spawn_z(all_sprites)
@@ -456,7 +465,7 @@ while running:
 
     pygame.mouse.set_visible(False)
     if not pause.pause:
-        gui.move_cam(2)
+        gui.move_cam(cam_speed)
         gui.move()
         gui.update()
     gui.render(screen)
