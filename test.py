@@ -126,9 +126,7 @@ class Zombie(pygame.sprite.Sprite):
         self.rect.x = (self.x - 1) * CELL_SIZE
         self.rect.y = (self.y - 1) * CELL_SIZE - 16
         self.moving = -(CELL_SIZE // 2)
-        self.kk = 0
-        self.kk0 = 1
-        self.kk2 = 0
+        self.sprite_num = 0
         self.stage = -1
         self.damage = True
 
@@ -145,14 +143,14 @@ class Zombie(pygame.sprite.Sprite):
                 if mute.mute:
                     roar.set_volume(0)
         if self.stage == 0:
-            self.kk0 += 1
-            if int(self.kk0) == 12:
+            self.sprite_num += 1
+            if self.sprite_num == 12:
                 self.stage += 1
+                self.sprite_num = 1
                 self.rect.y -= 16
                 return
             self.image = pygame.image.load(
-                'appear/appear_{}.png'.format(
-                    int(self.kk0)))
+                'appear/appear_{}.png'.format(self.sprite_num))
         elif self.stage == 1:
             self.d *= random.choice([1] * 99 + [-1])
 
@@ -176,9 +174,9 @@ class Zombie(pygame.sprite.Sprite):
                     del self
 
                 else:
-                    self.kk = (self.kk + 1) % 10 + 1
+                    self.sprite_num = (self.sprite_num + 1) % 10 + 1
                     self.image = pygame.image.load(
-                        'walk/go_{}_r.png'.format(self.kk))
+                        'walk/go_{}_r.png'.format(self.sprite_num))
                     if self.d < 0:
                         self.image = pygame.transform.flip(self.image, True, False)
                     else:
@@ -187,14 +185,14 @@ class Zombie(pygame.sprite.Sprite):
             else:
                 self.d *= -1
         elif self.stage == 2:
-            self.kk2 += 1
-            if self.kk2 == 10:
+            self.sprite_num += 1
+            if self.sprite_num == 10:
                 all_sprites.remove(self)
                 gui.erase(self)
                 del self
             else:
                 self.image = pygame.image.load(
-                    'die/die_{}_r.png'.format(self.kk2))
+                    'die/die_{}_r.png'.format(self.sprite_num))
                 if self.d < 0:
                     self.image = pygame.transform.flip(self.image, True, False)
                 else:
@@ -207,6 +205,7 @@ class Zombie(pygame.sprite.Sprite):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
                 event.pos) and self.stage == 1 and gun.reload:
             self.stage = 2
+            self.sprite_num = 0
             roar = pygame.mixer.Sound('music/dead_sound%d.wav' % (random.randint(1, 3)))
             roar.play()
             if mute.mute:
