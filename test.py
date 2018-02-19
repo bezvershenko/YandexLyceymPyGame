@@ -42,7 +42,6 @@ class Background:
         if self.rep:
             screen.blit(self.img, (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
-
     def zero(self):
         self.rep = False
         self.x = 0
@@ -304,7 +303,7 @@ class Gun:
 class Count:
     def __init__(self):
         self.text = '0'
-        self.font = pygame.font.SysFont('monospace', 50)
+        self.font = pygame.font.Font('fonts/6551.ttf', 50)
 
     def render(self):
         x = self.font.render('Score: ' + self.text, True, WHITE)
@@ -340,17 +339,8 @@ def terminate():
 def start_screen():
     introText = ["ЗАСТАВКА", "", 'надо засунуть сюда кнопки', 'и картиночку какую-нить']
 
-    screen.fill(BLUE)
-    font = pygame.font.Font(None, 30)
-    textCoord = 50
-    for line in introText:
-        stringRendered = font.render(line, 1, WHITE)
-        introRect = stringRendered.get_rect()
-        textCoord += 10
-        introRect.top = textCoord
-        introRect.x = 10
-        textCoord += introRect.height
-        screen.blit(stringRendered, introRect)
+    img = pygame.image.load('img_res/start_screen.png')
+    screen.blit(img, (0, 0))
 
     while True:
         for event in pygame.event.get():
@@ -358,7 +348,9 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 return  # начинаем игру
+
         pygame.display.flip()
+
         clock.tick(30)
 
 
@@ -413,7 +405,6 @@ buttons = Buttons()
 buttons.add(pause)
 buttons.add(mute)
 pygame.mixer.init()
-
 
 cam_speed = 2
 frequency = 7
