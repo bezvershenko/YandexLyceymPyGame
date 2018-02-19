@@ -79,8 +79,8 @@ class Pause(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(x=self.x, y=self.y)
 
     def apply_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
-                event.pos):
+        if ((event.type == pygame.MOUSEBUTTONDOWN and event.button == 1) and self.rect.collidepoint(
+                event.pos)) or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             self.pause = not self.pause
 
 
@@ -156,7 +156,7 @@ class Count:
 
     def render(self):
         x = self.font.render('Score: ' + self.text, True, pygame.Color('white'))
-        screen.blit(x, (w // 2 - x.get_rect().width // 2, 50))
+        screen.blit(x, (w // 2, 50))
 
     def add(self):
         self.text = str(int(self.text) + 1)
@@ -213,6 +213,8 @@ class Zombie(pygame.sprite.Sprite):
             if self.x + self.d <= 0:
                 self.d *= -1
                 return
+
+
             if step_able(self):
                 self.x += self.d
 
@@ -220,11 +222,10 @@ class Zombie(pygame.sprite.Sprite):
                 if self.rect.x < 0 and self.damage:
                     health.damage()
                     self.damage = False
-                    self.stage += 1
                 if self.rect.x > 0:
                     self.damage = True
 
-                if self.rect.x < -250:
+                if self.rect.x < -50:
                     all_sprites.remove(self)
                     gui.erase(self)
                     del self
@@ -360,7 +361,7 @@ class Background:
         print('yay')
 
 
-def find_up(g):
+def find_zy(g):
     ans = len(main_arr[0])
     for i in range(5, len(main_arr[0])):
         if main_arr[i][g] != 0:
@@ -371,11 +372,13 @@ def find_up(g):
 
 def spawn_z(all_sprites):
     for i in range(10, len(main_arr[0]), 5):
-        y = find_up(i)
+        y = find_zy(i)
+        if y is None:
+            continue
         gui.add_element(Zombie(i, y, all_sprites))
 
 
-def find_kekes(d):
+def find_y(d):
     maxy = 0
     miny = len(d)
     for i in range(len(d[0])):
@@ -395,7 +398,7 @@ pp = pygame.image.load('final2.png')
 main_arr = parse('final2.json')
 # print(main_arr)
 # print(gui.elements)
-miny, maxy = find_kekes(main_arr)
+miny, maxy = find_y(main_arr)
 size = w, h = 700, (maxy * 32 - miny * 32)
 bg = Background(0, 0, pp)
 sch = Count()
