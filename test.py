@@ -49,7 +49,7 @@ class Background:
         spawn_z(all_sprites)
         global cam_speed
         if cam_speed < 4:
-            cam_speed += 1
+            cam_speed += 0.6
 
 
 class GUI:
@@ -414,7 +414,7 @@ buttons.add(pause)
 buttons.add(mute)
 pygame.mixer.init()
 
-cam_speed = 1
+cam_speed = 2
 frequency = 7
 
 all_sprites = pygame.sprite.Group()
