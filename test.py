@@ -388,7 +388,7 @@ def terminate():
 def start_screen():
     img = pygame.image.load('img_res/start_screen.png')
     button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'play')
-    button_highscore = Button((w // 2 - 100, h // 2 +35, 200, 50), 'highscore')
+    button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'highscore')
     button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'exit')
     screen.blit(img, (0, 0))
 
