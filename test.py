@@ -414,6 +414,7 @@ buttons.add(pause)
 buttons.add(mute)
 pygame.mixer.init()
 
+
 cam_speed = 2
 frequency = 7
 
