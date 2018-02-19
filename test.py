@@ -312,6 +312,55 @@ class Count:
     def add(self):
         self.text = str(int(self.text) + 1)
 
+class Label:
+    def __init__(self, rect, text, text_color=pygame.Color('black'), background_color=pygame.Color('white')):
+        self.rect = pygame.Rect(rect)
+        self.text = text
+        self.bgcolor = background_color
+        self.font_color = text_color
+        # Рассчитываем размер шрифта в зависимости от высоты
+        self.font = pygame.font.Font(None, self.rect.height - 4)
+        self.rendered_text = None
+        self.rendered_rect = None
+
+    def render(self, surface):
+        if self.bgcolor != -1:
+            surface.fill(self.bgcolor, self.rect)
+        self.rendered_text = self.font.render(self.text, 1, self.font_color)
+        self.rendered_rect = self.rendered_text.get_rect(x=self.rect.x + 2, centery=self.rect.centery)
+        # выводим текст
+        surface.blit(self.rendered_text, self.rendered_rect)
+
+class Button(Label):
+    def __init__(self, rect, text):
+        # musor, musor, width, height = rect
+        # if len(text) * (height - 4) / 2.5 > width:
+        #    text = text[:int((width) // (height - 4) * 2.5)] + '...'
+        super().__init__(rect, text)
+        self.bgcolor = pygame.Color("blue")
+        # при создании кнопка не нажата
+        self.pressed = False
+
+    def render(self, surface):
+        surface.fill(self.bgcolor, self.rect)
+        self.rendered_text = self.font.render(self.text, 1, self.font_color)
+        self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
+
+        # рисуем границу
+        #pygame.draw.rect(surface, color1, self.rect, 2)
+        #pygame.draw.line(surface, color2, (self.rect.right - 1, self.rect.top), (self.rect.right - 1, self.rect.bottom),
+        #                 2)
+        #pygame.draw.line(surface, color2, (self.rect.left, self.rect.bottom - 1),
+        #                 (self.rect.right, self.rect.bottom - 1), 2)
+        # выводим текст
+        surface.blit(self.rendered_text, self.rendered_rect)
+
+    def get_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return True
+        return False
+
 
 def parse(s):
     f = json.load(open(s))
@@ -338,14 +387,28 @@ def terminate():
 
 def start_screen():
     img = pygame.image.load('img_res/start_screen.png')
+    button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'play')
+    button_highscore = Button((w // 2 - 100, h // 2 +35, 200, 50), 'highscore')
+    button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'exit')
     screen.blit(img, (0, 0))
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if button_play.get_event(event):
+                    return
+                elif button_exit.get_event(event):
+                    pygame.quit()
+                    sys.exit(0)
+                elif button_highscore.get_event(event):
+                    #сюда вставить показ хайскоров
+                    pass
+        screen.blit(img, (0, 0))
+        button_play.render(screen)
+        button_highscore.render(screen)
+        button_exit.render(screen)
         pygame.display.flip()
 
         clock.tick(30)
