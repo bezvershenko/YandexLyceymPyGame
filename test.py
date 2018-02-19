@@ -400,8 +400,7 @@ def start_screen():
                 if button_play.get_event(event):
                     return
                 elif button_exit.get_event(event):
-                    pygame.quit()
-                    sys.exit(0)
+                    terminate()
                 elif button_highscore.get_event(event):
                     #сюда вставить показ хайскоров
                     pass
