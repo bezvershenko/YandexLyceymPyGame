@@ -45,6 +45,10 @@ class Background:
     def zero(self):
         self.rep = False
         self.x = 0
+        for i in all_sprites:
+            if isinstance(i, Zombie):
+                gui.erase(i)
+                all_sprites.remove(i)
         spawn_z(all_sprites)
         global cam_speed
         if cam_speed < 4:
@@ -116,12 +120,12 @@ class Zombie(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.d = random.choice([0.1, -0.1])
-        self.moving = 0
         self.image = pygame.image.load(
             'appear/appear_{}.png'.format(1))
         self.rect = self.image.get_rect()
         self.rect.x = (self.x - 1) * CELL_SIZE
         self.rect.y = (self.y - 1) * CELL_SIZE - 16
+        self.moving = -(CELL_SIZE // 2)
         self.kk = 0
         self.kk0 = 1
         self.kk2 = 0
@@ -130,11 +134,11 @@ class Zombie(pygame.sprite.Sprite):
 
     def move_cam(self, d):
         self.moving -= d
-        self.rect.x -= d
+        self.rect.x = self.x * CELL_SIZE + self.moving
 
     def move(self):
         if self.stage == -1:
-            if 0 <= (self.x - 1) * CELL_SIZE + self.moving <= 600:
+            if 0 <= self.rect.x <= 600:
                 self.stage += 1
                 roar = pygame.mixer.Sound('music/brains%d.wav' % (random.randint(1, 3)))
                 roar.play()
@@ -142,11 +146,6 @@ class Zombie(pygame.sprite.Sprite):
                     roar.set_volume(0)
         if self.stage == 0:
             self.kk0 += 1
-            if self.kk0 == 12.0:
-                self.stage += 1
-                # self.y -= 1
-                self.rect.y -= 16
-                return
             if int(self.kk0) == 12:
                 self.stage += 1
                 self.rect.y -= 16
