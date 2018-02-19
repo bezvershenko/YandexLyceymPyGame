@@ -337,8 +337,6 @@ def terminate():
 
 
 def start_screen():
-    introText = ["ЗАСТАВКА", "", 'надо засунуть сюда кнопки', 'и картиночку какую-нить']
-
     img = pygame.image.load('img_res/start_screen.png')
     screen.blit(img, (0, 0))
 
@@ -347,8 +345,7 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return  # начинаем игру
-
+                return
         pygame.display.flip()
 
         clock.tick(30)
