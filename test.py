@@ -181,9 +181,9 @@ class Zombie(pygame.sprite.Sprite):
         self.stage = -1
         self.damage = True
 
-    def move_cam(self):
-        self.moving -= 1
-        self.rect.x -= 1
+    def move_cam(self, d):
+        self.moving -= d
+        self.rect.x -= d
 
     def move(self):
         if self.stage == -1:
@@ -303,11 +303,11 @@ class GUI:
             if callable(get_event):
                 element.get_event(event)
 
-    def move_cam(self):
+    def move_cam(self, d):
         for element in self.elements:
             move_cam = getattr(element, "move_cam", None)
             if callable(move_cam):
-                element.move_cam()
+                element.move_cam(d)
 
     def move(self):
         for element in self.elements:
@@ -335,14 +335,14 @@ class Background:
         self.img = img
         self.rep = False
 
-    def move_cam(self):
+    def move_cam(self, d):
         if self.x > -(len(main_arr[0]) * 32 - 700):
-            self.x -= 1
+            self.x -= d
         elif self.x == -(len(main_arr[0]) * 32 - 700):
             self.rep = True
-            self.x -= 1
+            self.x -= d
         elif -(len(main_arr[0]) * 32 - 700) > self.x > -(len(main_arr[0]) * 32):
-            self.x -= 1
+            self.x -= d
             self.rep = True
         else:
             self.x += len(main_arr[0]) * 32
@@ -466,7 +466,7 @@ while running:
 
     pygame.mouse.set_visible(False)
     if not pause.pause:
-        gui.move_cam()
+        gui.move_cam(2)
         gui.move()
         gui.update()
     gui.render(screen)
