@@ -45,6 +45,10 @@ class Background:
     def zero(self):
         self.rep = False
         self.x = 0
+        for i in all_sprites:
+            if isinstance(i, Zombie):
+                gui.erase(i)
+                all_sprites.remove(i)
         spawn_z(all_sprites)
         global cam_speed
         if cam_speed < 4:
@@ -116,44 +120,37 @@ class Zombie(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.d = random.choice([0.1, -0.1])
-        self.moving = 0
         self.image = pygame.image.load(
             'appear/appear_{}.png'.format(1))
         self.rect = self.image.get_rect()
         self.rect.x = (self.x - 1) * CELL_SIZE
         self.rect.y = (self.y - 1) * CELL_SIZE - 16
-        self.kk = 0
-        self.kk0 = 1
-        self.kk2 = 0
+        self.moving = -(CELL_SIZE // 2)
+        self.sprite_num = 0
         self.stage = -1
         self.damage = True
 
     def move_cam(self, d):
         self.moving -= d
-        self.rect.x -= d
+        self.rect.x = self.x * CELL_SIZE + self.moving
 
     def move(self):
         if self.stage == -1:
-            if 0 <= (self.x - 1) * CELL_SIZE + self.moving <= 600:
+            if 0 <= self.rect.x <= 600:
                 self.stage += 1
                 roar = pygame.mixer.Sound('music/brains%d.wav' % (random.randint(1, 3)))
                 roar.play()
                 if mute.mute:
                     roar.set_volume(0)
         if self.stage == 0:
-            self.kk0 += 1
-            if self.kk0 == 12.0:
+            self.sprite_num += 1
+            if self.sprite_num == 12:
                 self.stage += 1
-                # self.y -= 1
-                self.rect.y -= 16
-                return
-            if int(self.kk0) == 12:
-                self.stage += 1
+                self.sprite_num = 1
                 self.rect.y -= 16
                 return
             self.image = pygame.image.load(
-                'appear/appear_{}.png'.format(
-                    int(self.kk0)))
+                'appear/appear_{}.png'.format(self.sprite_num))
         elif self.stage == 1:
             self.d *= random.choice([1] * 99 + [-1])
 
@@ -177,9 +174,9 @@ class Zombie(pygame.sprite.Sprite):
                     del self
 
                 else:
-                    self.kk = (self.kk + 1) % 10 + 1
+                    self.sprite_num = (self.sprite_num + 1) % 10 + 1
                     self.image = pygame.image.load(
-                        'walk/go_{}_r.png'.format(self.kk))
+                        'walk/go_{}_r.png'.format(self.sprite_num))
                     if self.d < 0:
                         self.image = pygame.transform.flip(self.image, True, False)
                     else:
@@ -188,14 +185,14 @@ class Zombie(pygame.sprite.Sprite):
             else:
                 self.d *= -1
         elif self.stage == 2:
-            self.kk2 += 1
-            if self.kk2 == 10:
+            self.sprite_num += 1
+            if self.sprite_num == 10:
                 all_sprites.remove(self)
                 gui.erase(self)
                 del self
             else:
                 self.image = pygame.image.load(
-                    'die/die_{}_r.png'.format(self.kk2))
+                    'die/die_{}_r.png'.format(self.sprite_num))
                 if self.d < 0:
                     self.image = pygame.transform.flip(self.image, True, False)
                 else:
@@ -208,6 +205,7 @@ class Zombie(pygame.sprite.Sprite):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
                 event.pos) and self.stage == 1 and gun.reload:
             self.stage = 2
+            self.sprite_num = 0
             roar = pygame.mixer.Sound('music/dead_sound%d.wav' % (random.randint(1, 3)))
             roar.play()
             if mute.mute:
@@ -312,6 +310,55 @@ class Count:
     def add(self):
         self.text = str(int(self.text) + 1)
 
+class Label:
+    def __init__(self, rect, text, text_color=pygame.Color('black'), background_color=pygame.Color('white')):
+        self.rect = pygame.Rect(rect)
+        self.text = text
+        self.bgcolor = background_color
+        self.font_color = text_color
+        # Рассчитываем размер шрифта в зависимости от высоты
+        self.font = pygame.font.Font(None, self.rect.height - 4)
+        self.rendered_text = None
+        self.rendered_rect = None
+
+    def render(self, surface):
+        if self.bgcolor != -1:
+            surface.fill(self.bgcolor, self.rect)
+        self.rendered_text = self.font.render(self.text, 1, self.font_color)
+        self.rendered_rect = self.rendered_text.get_rect(x=self.rect.x + 2, centery=self.rect.centery)
+        # выводим текст
+        surface.blit(self.rendered_text, self.rendered_rect)
+
+class Button(Label):
+    def __init__(self, rect, text):
+        # musor, musor, width, height = rect
+        # if len(text) * (height - 4) / 2.5 > width:
+        #    text = text[:int((width) // (height - 4) * 2.5)] + '...'
+        super().__init__(rect, text)
+        self.bgcolor = pygame.Color("blue")
+        # при создании кнопка не нажата
+        self.pressed = False
+
+    def render(self, surface):
+        surface.fill(self.bgcolor, self.rect)
+        self.rendered_text = self.font.render(self.text, 1, self.font_color)
+        self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
+
+        # рисуем границу
+        #pygame.draw.rect(surface, color1, self.rect, 2)
+        #pygame.draw.line(surface, color2, (self.rect.right - 1, self.rect.top), (self.rect.right - 1, self.rect.bottom),
+        #                 2)
+        #pygame.draw.line(surface, color2, (self.rect.left, self.rect.bottom - 1),
+        #                 (self.rect.right, self.rect.bottom - 1), 2)
+        # выводим текст
+        surface.blit(self.rendered_text, self.rendered_rect)
+
+    def get_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return True
+        return False
+
 
 def parse(s):
     f = json.load(open(s))
@@ -338,14 +385,27 @@ def terminate():
 
 def start_screen():
     img = pygame.image.load('img_res/start_screen.png')
+    button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'play')
+    button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'highscore')
+    button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'exit')
     screen.blit(img, (0, 0))
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if button_play.get_event(event):
+                    return
+                elif button_exit.get_event(event):
+                    terminate()
+                elif button_highscore.get_event(event):
+                    #сюда вставить показ хайскоров
+                    pass
+        screen.blit(img, (0, 0))
+        button_play.render(screen)
+        button_highscore.render(screen)
+        button_exit.render(screen)
         pygame.display.flip()
 
         clock.tick(30)
