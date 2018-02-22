@@ -8,12 +8,55 @@ pygame.init()
 WHITE, GREEN, BLUE, RED = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0)
 CELL_SIZE = 32
 WIDTH = 700
-PAUSE, MUTE1, MUTE2 = pygame.image.load('buttons/pause.png'), pygame.image.load('buttons/mute1.png'), pygame.image.load(
-    'buttons/mute2.png')
+PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pause.png'), pygame.image.load(
+    'buttons/mute1.png'), pygame.image.load(
+    'buttons/mute2.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
+    pygame.image.load('img_res/particles.png'), (64, 64))
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
 MAPPNG, MAPJSON = pygame.image.load('map/map.png'), 'map/map.json'
 AIM = pygame.image.load('buttons/aim1.png')
+MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (60, 60), (40, 40)
+
+
+class Particle(pygame.sprite.Sprite):
+    # сгенерируем частицы разного размера
+    fire = [PARTICLES]
+    for scale in (8, 16, 32):
+        fire.append(pygame.transform.scale(fire[0], (scale, scale)))
+
+    def __init__(self, pos, dx, dy):
+        super().__init__(all_sprites)
+        self.image = random.choice(self.fire)
+        self.rect = self.image.get_rect()
+
+        # у каждой частицы своя скорость - это вектор
+        self.velocity = [dx, dy]
+        # и свои координаты
+        self.rect.x, self.rect.y = pos
+
+        # гравитация будет одинаковой
+        self.gravity = 0.05
+
+    def update(self):
+        # применяем гравитационный эффект:
+        # движение с ускорением под действием гравитации
+        self.velocity[1] += self.gravity
+        # перемещаем частицу
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        # убиваем, если частица ушла за экран
+        if not self.rect.colliderect(screen_rect):
+            self.kill()
+
+
+def create_particles(position):
+    # количество создаваемых частиц
+    particle_count = 20
+    # возможные скорости
+    numbers = range(-10, 10)
+    for _ in range(particle_count):
+        Particle(position, random.choice(numbers), random.choice(numbers))
 
 
 class Background:
@@ -108,7 +151,7 @@ class GUI:
     def spawn_medkits(self):
         for i in range(len(main_arr[0])):
             if random.randrange(0, 100) <= 1:
-                gui.add_element(Medkit(i, find_zy(i), all_sprites))
+                gui.add_element(MedKit(i, find_zy(i), all_sprites))
 
 
 class Buttons(pygame.sprite.Group):
@@ -278,15 +321,16 @@ class Health:
                 sys.exit()
 
     def heal(self):
-        self.health = min(100, self.health + 20)
+        extra = random.choice([5, 10, 20, 25])
+        self.health = min(100, self.health + extra)
 
-class Medkit(pygame.sprite.Sprite):
+
+class MedKit(pygame.sprite.Sprite):
     def __init__(self, x, y, gr):
         super().__init__(gr)
-        print(x, y)
         self.x = x * 32
         self.y = y * 32
-        self.image = MUTE1
+        self.image = HEALTH
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.x, self.y)
@@ -298,6 +342,7 @@ class Medkit(pygame.sprite.Sprite):
     def get_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
                 event.pos):
+            create_particles(event.pos)
             health.heal()
             all_sprites.remove(self)
             gui.erase(self)
@@ -337,7 +382,7 @@ class Gun:
 class Count:
     def __init__(self):
         self.text = '0'
-        self.font = pygame.font.Font('fonts/6551.ttf', 50)
+        self.font = pygame.font.Font(MAIN_FONT, 50)
 
     def render(self):
         x = self.font.render('Score: ' + self.text, True, WHITE)
@@ -346,14 +391,15 @@ class Count:
     def add(self):
         self.text = str(int(self.text) + 1)
 
+
 class Label:
-    def __init__(self, rect, text, text_color=pygame.Color('black'), background_color=pygame.Color('white')):
+    def __init__(self, rect, text, text_color=pygame.Color('white'), background_color=pygame.Color('white')):
         self.rect = pygame.Rect(rect)
         self.text = text
         self.bgcolor = background_color
         self.font_color = text_color
         # Рассчитываем размер шрифта в зависимости от высоты
-        self.font = pygame.font.Font(None, self.rect.height - 4)
+        self.font = pygame.font.Font(MAIN_FONT, self.rect.height - 15)
         self.rendered_text = None
         self.rendered_rect = None
 
@@ -365,34 +411,35 @@ class Label:
         # выводим текст
         surface.blit(self.rendered_text, self.rendered_rect)
 
+
 class Button(Label):
     def __init__(self, rect, text):
-        # musor, musor, width, height = rect
-        # if len(text) * (height - 4) / 2.5 > width:
-        #    text = text[:int((width) // (height - 4) * 2.5)] + '...'
         super().__init__(rect, text)
-        self.bgcolor = pygame.Color("blue")
-        # при создании кнопка не нажата
+        self.bgcolor = (250, 113, 36)
         self.pressed = False
 
     def render(self, surface):
-        surface.fill(self.bgcolor, self.rect)
-        self.rendered_text = self.font.render(self.text, 1, self.font_color)
-        self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
 
-        # рисуем границу
-        #pygame.draw.rect(surface, color1, self.rect, 2)
-        #pygame.draw.line(surface, color2, (self.rect.right - 1, self.rect.top), (self.rect.right - 1, self.rect.bottom),
-        #                 2)
-        #pygame.draw.line(surface, color2, (self.rect.left, self.rect.bottom - 1),
-        #                 (self.rect.right, self.rect.bottom - 1), 2)
-        # выводим текст
+        if not self.pressed:
+            surface.fill(self.bgcolor, self.rect)
+            self.rendered_text = self.font.render(self.text, 1, self.font_color)
+            self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
+        else:
+            surface.fill(self.font_color, self.rect)
+            self.rendered_text = self.font.render(self.text, 1, self.bgcolor)
+            self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
+
         surface.blit(self.rendered_text, self.rendered_rect)
 
     def get_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
-                return True
+                self.pressed = True
+                return False
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.pressed:
+            self.pressed = False
+            return True
+
         return False
 
 
@@ -421,29 +468,28 @@ def terminate():
 
 def start_screen():
     img = pygame.image.load('img_res/start_screen.png')
-    button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'play')
-    button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'highscore')
-    button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'exit')
+    button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'PLAY')
+    button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'HIGHSCORE')
+    button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'EXIT')
     screen.blit(img, (0, 0))
-
+    play = False
+    exit = False
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if button_play.get_event(event):
-                    return
-                elif button_exit.get_event(event):
-                    terminate()
-                elif button_highscore.get_event(event):
-                    #сюда вставить показ хайскоров
-                    pass
+            if button_play.get_event(event):
+                return
+            elif button_exit.get_event(event):
+                terminate()
+            elif button_highscore.get_event(event):
+                pass
         screen.blit(img, (0, 0))
         button_play.render(screen)
         button_highscore.render(screen)
         button_exit.render(screen)
-        pygame.display.flip()
 
+        pygame.display.flip()
         clock.tick(30)
 
 
@@ -505,13 +551,13 @@ current_x = 0
 
 all_sprites = pygame.sprite.Group()
 spawn_z(all_sprites)
-m = Medkit(10 * 32, find_zy(10) * 32, all_sprites)
+m = MedKit(10 * 32, find_zy(10) * 32, all_sprites)
 gui.add_element(m)
 gui.spawn_medkits()
 screen = pygame.display.set_mode(size)
 running = True
 clock = pygame.time.Clock()
-
+screen_rect = (0, 0, WIDTH, h)
 cursor = pygame.transform.scale(AIM, CURSOR_BIG)
 pygame.mixer.init()
 flag = False
@@ -561,6 +607,7 @@ while running:
         gui.update()
     gui.render(screen)
     all_sprites.draw(screen)
+    all_sprites.update()
     if flag:
         c = cursor.get_rect().width
         screen.blit(cursor, (x - c // 2, y - c // 2))
