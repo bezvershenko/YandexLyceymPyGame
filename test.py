@@ -13,7 +13,7 @@ PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pause.png'),
     'buttons/mute2.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
-MAPPNG, MAPJSON = pygame.image.load('map/map.png'), 'map/map.json'
+MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map.json'
 AIM = pygame.image.load('buttons/aim1.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (60, 60), (40, 40)
@@ -273,7 +273,7 @@ class Pause(pygame.sprite.Sprite):
         self.pause = False
         self.image = PAUSE
         self.image = pygame.transform.scale(self.image, (50, 30))
-        self.x, self.y = w - 60, 40
+        self.x, self.y = w - 40, 40
         self.rect = self.image.get_rect(x=self.x, y=self.y)
 
     def apply_event(self, event):
@@ -304,7 +304,7 @@ class Mute(pygame.sprite.Sprite):
 class Health:
     def __init__(self):
         self.health = 100
-        self.x = 20
+        self.x = 10
         self.y = 40
         self.h = 50
 
@@ -356,7 +356,7 @@ class MedKit(pygame.sprite.Sprite):
 class Gun:
     def __init__(self):
         self.health = 100
-        self.x = 150
+        self.x = 130
         self.y = 40
         self.h = 50
         self.reload = True
@@ -386,7 +386,7 @@ class Count:
 
     def render(self):
         x = self.font.render('Score: ' + self.text, True, WHITE)
-        screen.blit(x, (w // 2, 50))
+        screen.blit(x, (w // 2 - x.get_rect().width // 2, 43))
 
     def add(self):
         self.text = str(int(self.text) + 1)
@@ -467,7 +467,7 @@ def terminate():
 
 
 def start_screen():
-    img = pygame.image.load('img_res/start_screen.png')
+    img = pygame.image.load('img_res/start_screen2.png')
     button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'PLAY')
     button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'HIGHSCORE')
     button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'EXIT')
@@ -555,6 +555,8 @@ m = MedKit(10 * 32, find_zy(10) * 32, all_sprites)
 gui.add_element(m)
 gui.spawn_medkits()
 screen = pygame.display.set_mode(size)
+pygame.display.set_caption('Zombie Shooting Range')
+pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
 running = True
 clock = pygame.time.Clock()
 screen_rect = (0, 0, WIDTH, h)
