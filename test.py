@@ -50,9 +50,10 @@ class Background:
                 gui.erase(i)
                 all_sprites.remove(i)
         spawn_z(all_sprites)
-        global cam_speed
+        global cam_speed, current_x
         if cam_speed < 4:
             cam_speed += 0.6
+        gui.spawn_medkits()
 
 
 class GUI:
@@ -103,6 +104,11 @@ class GUI:
             zero = getattr(element, "zero", None)
             if callable(zero):
                 element.zero()
+
+    def spawn_medkits(self):
+        for i in range(len(main_arr[0])):
+            if random.randrange(0, 100) <= 1:
+                gui.add_element(Medkit(i, find_zy(i), all_sprites))
 
 
 class Buttons(pygame.sprite.Group):
@@ -271,6 +277,35 @@ class Health:
                 print('game over')
                 sys.exit()
 
+    def heal(self):
+        self.health = min(100, self.health + 20)
+
+class Medkit(pygame.sprite.Sprite):
+    def __init__(self, x, y, gr):
+        super().__init__(gr)
+        print(x, y)
+        self.x = x * 32
+        self.y = y * 32
+        self.image = MUTE1
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (self.x, self.y)
+        self.moving = 0
+
+    def render(self):
+        pygame.draw.rect(screen, pygame.Color('black'), self.rect)
+
+    def get_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
+                event.pos):
+            health.heal()
+            all_sprites.remove(self)
+            gui.erase(self)
+            del self
+
+    def move_cam(self, d):
+        self.moving -= d
+        self.rect.x = self.x + self.moving
 
 class Gun:
     def __init__(self):
@@ -465,9 +500,13 @@ pygame.mixer.init()
 
 cam_speed = 2
 frequency = 7
+current_x = 0
 
 all_sprites = pygame.sprite.Group()
 spawn_z(all_sprites)
+m = Medkit(10 * 32, find_zy(10) * 32, all_sprites)
+gui.add_element(m)
+gui.spawn_medkits()
 screen = pygame.display.set_mode(size)
 running = True
 clock = pygame.time.Clock()
@@ -516,6 +555,7 @@ while running:
     pygame.mouse.set_visible(False)
     if not pause.pause:
         gui.move_cam(cam_speed)
+        current_x += cam_speed
         gui.move()
         gui.update()
     gui.render(screen)
@@ -523,7 +563,6 @@ while running:
     if flag:
         c = cursor.get_rect().width
         screen.blit(cursor, (x - c // 2, y - c // 2))
-
     buttons.draw(screen)
     pygame.display.flip()
     clock.tick(30)
