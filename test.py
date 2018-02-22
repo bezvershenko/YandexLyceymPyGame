@@ -307,6 +307,7 @@ class Medkit(pygame.sprite.Sprite):
         self.moving -= d
         self.rect.x = self.x + self.moving
 
+
 class Gun:
     def __init__(self):
         self.health = 100
