@@ -5,14 +5,14 @@ import json
 import sys
 
 pygame.init()
-WHITE, GREEN, BLUE, RED = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0)
+WHITE, GREEN, BLUE, RED, DARKBLUE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77)
 CELL_SIZE = 32
 WIDTH = 700
-PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pause.png'), pygame.image.load(
-    'buttons/mute1.png'), pygame.image.load(
-    'buttons/mute2.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
+PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png'), pygame.image.load(
+    'buttons/mute1w.png'), pygame.image.load(
+    'buttons/mute2w.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
-SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
+SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack2.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
 MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map.json'
 AIM = pygame.image.load('buttons/aim1.png')
 MAIN_FONT = 'fonts/6551.ttf'
@@ -188,6 +188,7 @@ class Zombie(pygame.sprite.Sprite):
             if 0 <= self.rect.x <= 600:
                 self.stage += 1
                 roar = pygame.mixer.Sound('music/brains%d.wav' % (random.randint(1, 3)))
+                roar.set_volume(0.6)
                 roar.play()
                 if mute.mute:
                     roar.set_volume(0)
@@ -256,6 +257,7 @@ class Zombie(pygame.sprite.Sprite):
             self.stage = 2
             self.sprite_num = 0
             roar = pygame.mixer.Sound('music/dead_sound%d.wav' % (random.randint(1, 3)))
+            roar.set_volume(0.6)
             roar.play()
             if mute.mute:
                 roar.stop()
@@ -273,7 +275,7 @@ class Pause(pygame.sprite.Sprite):
         self.pause = False
         self.image = PAUSE
         self.image = pygame.transform.scale(self.image, (50, 30))
-        self.x, self.y = w - 40, 40
+        self.x, self.y = w - 60, 50
         self.rect = self.image.get_rect(x=self.x, y=self.y)
 
     def apply_event(self, event):
@@ -290,7 +292,7 @@ class Mute(pygame.sprite.Sprite):
         self.mute = False
         self.image = self.d[self.mute]
         self.image = pygame.transform.scale(self.image, (40, 40))
-        self.x, self.y = w - 110, 35
+        self.x, self.y = w - 110, 45
         self.rect = self.image.get_rect(x=self.x, y=self.y)
 
     def apply_event(self, event):
@@ -393,7 +395,7 @@ class Count:
 
 
 class Label:
-    def __init__(self, rect, text, text_color=pygame.Color('white'), background_color=pygame.Color('white')):
+    def __init__(self, rect, text, text_color=DARKBLUE, background_color=pygame.Color('white')):
         self.rect = pygame.Rect(rect)
         self.text = text
         self.bgcolor = background_color
@@ -439,6 +441,11 @@ class Button(Label):
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.pressed:
             self.pressed = False
             return True
+        elif event.type == pygame.MOUSEMOTION:
+            if self.rect.collidepoint(event.pos):
+                self.font_color = WHITE
+            if not self.rect.collidepoint(event.pos):
+                self.font_color = DARKBLUE
 
         return False
 
@@ -563,7 +570,7 @@ screen_rect = (0, 0, WIDTH, h)
 cursor = pygame.transform.scale(AIM, CURSOR_BIG)
 pygame.mixer.init()
 flag = False
-
+# Music by Gustavo Santaolalla from Last Of Us
 soundtrack = pygame.mixer.Sound(SOUNDTRACK)
 soundtrack.play(loops=-1)
 start_screen()
@@ -584,12 +591,12 @@ while running:
                     gun.damage()
                     cursor = pygame.transform.scale(cursor, CURSOR_SMALL)
                     snd = pygame.mixer.Sound(PISTOL)
-                    snd.set_volume(0.3)
+                    snd.set_volume(0.2)
                     if not mute.mute:
                         snd.play()
                 else:
                     snd = pygame.mixer.Sound(OUTOFAMMO)
-                    snd.set_volume(0.7)
+                    snd.set_volume(0.6)
                     if not mute.mute:
                         snd.play()
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -608,12 +615,13 @@ while running:
         gui.move()
         gui.update()
     gui.render(screen)
+    buttons.draw(screen)
     all_sprites.draw(screen)
     all_sprites.update()
     if flag:
         c = cursor.get_rect().width
         screen.blit(cursor, (x - c // 2, y - c // 2))
-    buttons.draw(screen)
+
     pygame.display.flip()
     clock.tick(30)
 pygame.mixer.quit()
