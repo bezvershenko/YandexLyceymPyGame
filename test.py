@@ -12,11 +12,11 @@ PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png')
     'buttons/mute1w.png'), pygame.image.load(
     'buttons/mute2w.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
-SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack2.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
+SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack3.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
 MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map.json'
-AIM = pygame.image.load('buttons/aim1.png')
+AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
-CURSOR_BIG, CURSOR_SMALL = (60, 60), (40, 40)
+CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
 
 
 class Particle(pygame.sprite.Sprite):
@@ -48,7 +48,6 @@ class Particle(pygame.sprite.Sprite):
         # убиваем, если частица ушла за экран
         if not self.rect.colliderect(screen_rect):
             self.kill()
-
 
 
 def create_particles(position):
@@ -232,8 +231,7 @@ class Zombie(pygame.sprite.Sprite):
                         'walk/go_{}_r.png'.format(self.sprite_num))
                     if self.d < 0:
                         self.image = pygame.transform.flip(self.image, True, False)
-                    else:
-                        pass
+
 
             else:
                 self.d *= -1
@@ -248,11 +246,6 @@ class Zombie(pygame.sprite.Sprite):
                     'die/die_{}_r.png'.format(self.sprite_num))
                 if self.d < 0:
                     self.image = pygame.transform.flip(self.image, True, False)
-                else:
-                    pass
-
-    def render(self):
-        pass
 
     def get_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
@@ -278,7 +271,7 @@ class Pause(pygame.sprite.Sprite):
         self.pause = False
         self.image = PAUSE
         self.image = pygame.transform.scale(self.image, (50, 30))
-        self.x, self.y = w - 60, 50
+        self.x, self.y = w - 115, 47
         self.rect = self.image.get_rect(x=self.x, y=self.y)
 
     def apply_event(self, event):
@@ -295,7 +288,7 @@ class Mute(pygame.sprite.Sprite):
         self.mute = False
         self.image = self.d[self.mute]
         self.image = pygame.transform.scale(self.image, (40, 40))
-        self.x, self.y = w - 110, 45
+        self.x, self.y = w - 50, 43
         self.rect = self.image.get_rect(x=self.x, y=self.y)
 
     def apply_event(self, event):
@@ -319,11 +312,12 @@ class Health:
         pygame.draw.rect(screen, WHITE, (self.x, self.y, 100, self.h), 3)
 
     def damage(self):
-        if self.health - 5 >= 0:
+        global running
+        if self.health - 5 > 0:
             self.health -= 5
-            if self.health == 0:
-                print('game over')
-                sys.exit()
+        else:
+            self.health = 0
+            running = False
 
     def heal(self):
         extra = random.choice([5, 10, 20, 25])
@@ -361,7 +355,7 @@ class MedKit(pygame.sprite.Sprite):
 class Gun:
     def __init__(self):
         self.health = 100
-        self.x = 130
+        self.x = 120
         self.y = 40
         self.h = 50
         self.reload = True
@@ -383,8 +377,9 @@ class Gun:
         else:
             self.reload = True
 
+
 class Inscription:
-    def __init__(self, x=None, y=None, text='', font=50, time_limit=0):
+    def __init__(self, x=None, y=None, text='', time_limit=0, font=50):
         self.text = text
         self.font = pygame.font.Font(MAIN_FONT, 50)
         self.x = x
@@ -398,7 +393,6 @@ class Inscription:
 
     def render(self):
         if self.islimited:
-            print(self.time_left)
             if self.time_left == 0:
                 rendtext = ''
             else:
@@ -406,13 +400,13 @@ class Inscription:
         else:
             rendtext = self.text
         d = self.font.render(rendtext, True, WHITE)
-        x = self.x if self.x != None else w//2 - d.get_rect().width // 2
+        x = self.x if self.x != None else w // 2 - d.get_rect().width // 2 + 5
         y = self.y if self.y != None else 0
         screen.blit(d, (x, y))
 
     def update(self):
         if self.islimited:
-            self.time_left  = max(0, self.time_left - 1)
+            self.time_left = max(0, self.time_left - 1)
 
     def show(self):
         if self.islimited:
@@ -429,7 +423,6 @@ class Counter(Inscription):
     def add(self):
         self.cnt += 1
         self.text = self.rend + str(self.cnt)
-
 
 
 class Label:
@@ -517,9 +510,11 @@ def start_screen():
     button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'HIGHSCORE')
     button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'EXIT')
     screen.blit(img, (0, 0))
-    play = False
-    exit = False
     while True:
+        if mute.mute:
+            soundtrack.set_volume(0)
+        else:
+            soundtrack.set_volume(0.4)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
@@ -529,10 +524,43 @@ def start_screen():
                 terminate()
             elif button_highscore.get_event(event):
                 pass
+            buttons.apply_event(event)
         screen.blit(img, (0, 0))
         button_play.render(screen)
         button_highscore.render(screen)
         button_exit.render(screen)
+        buttons.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(30)
+
+
+def game_over_screen():
+    img = pygame.image.load('img_res/game_over.png')
+    button_play = Button((w // 2 - 100, h // 2 - 120, 220, 50), 'PLAY AGAIN')
+    button_highscore = Button((w // 2 - 100, h // 2 - 60, 220, 50), 'HIGHSCORE')
+    button_exit = Button((w // 2 - 100, h // 2, 220, 50), 'EXIT')
+    screen.blit(img, (0, 0))
+    while True:
+        if mute.mute:
+            soundtrack.set_volume(0)
+        else:
+            soundtrack.set_volume(0.4)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if button_play.get_event(event):
+                return
+            elif button_exit.get_event(event):
+                terminate()
+            elif button_highscore.get_event(event):
+                pass
+            buttons.apply_event(event)
+        screen.blit(img, (0, 0))
+        button_play.render(screen)
+        button_highscore.render(screen)
+        button_exit.render(screen)
+        buttons.draw(screen)
 
         pygame.display.flip()
         clock.tick(30)
@@ -570,97 +598,105 @@ def find_y(d):
     return miny, maxy
 
 
-gui = GUI()
-health = Health()
-gun = Gun()
-
 main_arr = parse(MAPJSON)
 miny, maxy = find_y(main_arr)
 size = w, h = WIDTH, (maxy * CELL_SIZE - miny * CELL_SIZE)
-bg = Background(0, 0, MAPPNG)
-counter = Counter(x=None, y=43, font=50, start=0, text='Score: ')
-gui.add_element(bg)
-gui.add_element(counter)
-gui.add_element(health)
-gui.add_element(gun)
-pause = Pause()
-mute = Mute()
-buttons = Buttons()
-buttons.add(pause)
-buttons.add(mute)
-pygame.mixer.init()
-
-cam_speed = 2
-frequency = 7
-current_x = 0
-level_counter = Counter(10, 100, 50, 1, 'Level ', 100)
-gui.add_element(level_counter)
-level_counter.show()
-
-all_sprites = pygame.sprite.Group()
-spawn_z(all_sprites)
-gui.spawn_medkits()
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
 pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
-running = True
 clock = pygame.time.Clock()
-screen_rect = (0, 0, WIDTH, h)
-cursor = pygame.transform.scale(AIM, CURSOR_BIG)
-pygame.mixer.init()
-flag = False
-# Music by Gustavo Santaolalla from Last Of Us
+mute = Mute()
+buttons = Buttons()
+buttons.add(mute)
 soundtrack = pygame.mixer.Sound(SOUNDTRACK)
+# Soundtrack by  Matthew Pablo http://www.matthewpablo.com/contact
 soundtrack.play(loops=-1)
 start_screen()
-soundtrack.set_volume(0.4)
-while running:
-    if mute.mute:
-        soundtrack.set_volume(0)
-    else:
-        soundtrack.set_volume(0.4)
-    screen.fill(WHITE)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+while True:
 
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if not pause.rect.collidepoint(event.pos) and not pause.pause and not mute.rect.collidepoint(event.pos):
-                if gun.reload:
-                    gun.damage()
-                    cursor = pygame.transform.scale(cursor, CURSOR_SMALL)
-                    snd = pygame.mixer.Sound(PISTOL)
-                    snd.set_volume(0.2)
-                    if not mute.mute:
-                        snd.play()
-                else:
-                    snd = pygame.mixer.Sound(OUTOFAMMO)
-                    snd.set_volume(0.6)
-                    if not mute.mute:
-                        snd.play()
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if not pause.rect.collidepoint(event.pos) and not pause.pause:
-                cursor = pygame.transform.scale(AIM, CURSOR_BIG)
+    gui = GUI()
+    health = Health()
+    gun = Gun()
+
+    bg = Background(0, 0, MAPPNG)
+    counter = Counter(x=None, y=43, font=50, start=0, text='Score: ')
+    gui.add_element(bg)
+    gui.add_element(counter)
+    gui.add_element(health)
+    gui.add_element(gun)
+    pause = Pause()
+
+    buttons.add(pause)
+    pygame.mixer.init()
+
+    cam_speed = 2
+    frequency = 7
+    current_x = 0
+    level_counter = Counter(10, 100, 50, 1, 'Level ', 100)
+    gui.add_element(level_counter)
+    level_counter.show()
+
+    all_sprites = pygame.sprite.Group()
+    spawn_z(all_sprites)
+    gui.spawn_medkits()
+
+    screen_rect = (0, 0, WIDTH, h)
+    cursor = pygame.transform.scale(AIM, CURSOR_BIG)
+    pygame.mixer.init()
+    flag = False
+    running = True
+    soundtrack.set_volume(0.4)
+    while running:
+        if mute.mute:
+            soundtrack.set_volume(0)
+        else:
+            soundtrack.set_volume(0.4)
+        screen.fill(WHITE)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if not pause.rect.collidepoint(event.pos) and not pause.pause and not mute.rect.collidepoint(event.pos):
+                    if gun.reload:
+                        gun.damage()
+                        cursor = pygame.transform.scale(cursor, CURSOR_SMALL)
+                        snd = pygame.mixer.Sound(PISTOL)
+                        snd.set_volume(0.2)
+                        if not mute.mute:
+                            snd.play()
+                    else:
+                        snd = pygame.mixer.Sound(OUTOFAMMO)
+                        snd.set_volume(0.6)
+                        if not mute.mute:
+                            snd.play()
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if not pause.rect.collidepoint(event.pos) and not pause.pause:
+                    cursor = pygame.transform.scale(AIM, CURSOR_BIG)
+            if not pause.pause:
+                gui.get_event(event)
+                if not health.health:
+                    running = False
+            buttons.apply_event(event)
+            flag = pygame.mouse.get_focused()
+            x, y = pygame.mouse.get_pos()
+
+        pygame.mouse.set_visible(False)
         if not pause.pause:
-            gui.get_event(event)
-        buttons.apply_event(event)
-        flag = pygame.mouse.get_focused()
-        x, y = pygame.mouse.get_pos()
+            gui.move_cam(cam_speed)
+            current_x += cam_speed
+            gui.move()
+            gui.update()
+        gui.render(screen)
+        buttons.draw(screen)
+        all_sprites.update()
+        all_sprites.draw(screen)
+        if flag:
+            c = cursor.get_rect().width
+            screen.blit(cursor, (x - c // 2, y - c // 2))
 
-    pygame.mouse.set_visible(False)
-    if not pause.pause:
-        gui.move_cam(cam_speed)
-        current_x += cam_speed
-        gui.move()
-        gui.update()
-    gui.render(screen)
-    buttons.draw(screen)
-    all_sprites.update()
-    all_sprites.draw(screen)
-    if flag:
-        c = cursor.get_rect().width
-        screen.blit(cursor, (x - c // 2, y - c // 2))
-
-    pygame.display.flip()
-    clock.tick(30)
-pygame.mixer.quit()
+        pygame.display.flip()
+        clock.tick(30)
+    pygame.mouse.set_visible(True)
+    buttons.remove(pause)
+    game_over_screen()
