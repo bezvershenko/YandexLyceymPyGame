@@ -597,7 +597,6 @@ level_counter = Counter(10, 100, 50, 1, 'Level ', 100)
 gui.add_element(level_counter)
 level_counter.show()
 
-
 all_sprites = pygame.sprite.Group()
 spawn_z(all_sprites)
 gui.spawn_medkits()
