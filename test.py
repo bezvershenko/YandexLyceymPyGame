@@ -13,7 +13,7 @@ PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png')
     'buttons/mute2w.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack3.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
-MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map.json'
+MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map2.json'
 AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
