@@ -36,7 +36,7 @@ class Particle(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = pos
 
         # гравитация будет одинаковой
-        self.gravity = 0.05
+        self.gravity = 0.1
 
     def update(self):
         # применяем гравитационный эффект:
@@ -48,6 +48,7 @@ class Particle(pygame.sprite.Sprite):
         # убиваем, если частица ушла за экран
         if not self.rect.colliderect(screen_rect):
             self.kill()
+
 
 
 def create_particles(position):
@@ -97,6 +98,8 @@ class Background:
         if cam_speed < 4:
             cam_speed += 0.6
         gui.spawn_medkits()
+        level_counter.add()
+        level_counter.show()
 
 
 class GUI:
@@ -380,18 +383,53 @@ class Gun:
         else:
             self.reload = True
 
-
-class Count:
-    def __init__(self):
-        self.text = '0'
+class Inscription:
+    def __init__(self, x=None, y=None, text='', font=50, time_limit=0):
+        self.text = text
         self.font = pygame.font.Font(MAIN_FONT, 50)
+        self.x = x
+        self.y = y
+        if time_limit == 0:
+            self.islimited = False
+        else:
+            self.time_limit = time_limit
+            self.islimited = True
+            self.time_left = 0
 
     def render(self):
-        x = self.font.render('Score: ' + self.text, True, WHITE)
-        screen.blit(x, (w // 2 - x.get_rect().width // 2, 43))
+        if self.islimited:
+            print(self.time_left)
+            if self.time_left == 0:
+                rendtext = ''
+            else:
+                rendtext = self.text
+        else:
+            rendtext = self.text
+        d = self.font.render(rendtext, True, WHITE)
+        x = self.x if self.x != None else w//2 - d.get_rect().width // 2
+        y = self.y if self.y != None else 0
+        screen.blit(d, (x, y))
+
+    def update(self):
+        if self.islimited:
+            self.time_left  = max(0, self.time_left - 1)
+
+    def show(self):
+        if self.islimited:
+            self.time_left = self.time_limit
+
+
+class Counter(Inscription):
+    def __init__(self, x=None, y=None, font=50, start=0, text=None, time_limit=0):
+        self.cnt = start
+        self.rend = text
+        self.text = self.rend + str(self.cnt)
+        super().__init__(x=x, y=y, text=self.text, font=font, time_limit=time_limit)
 
     def add(self):
-        self.text = str(int(self.text) + 1)
+        self.cnt += 1
+        self.text = self.rend + str(self.cnt)
+
 
 
 class Label:
@@ -540,7 +578,7 @@ main_arr = parse(MAPJSON)
 miny, maxy = find_y(main_arr)
 size = w, h = WIDTH, (maxy * CELL_SIZE - miny * CELL_SIZE)
 bg = Background(0, 0, MAPPNG)
-counter = Count()
+counter = Counter(x=None, y=43, font=50, start=0, text='Score: ')
 gui.add_element(bg)
 gui.add_element(counter)
 gui.add_element(health)
@@ -555,11 +593,13 @@ pygame.mixer.init()
 cam_speed = 2
 frequency = 7
 current_x = 0
+level_counter = Counter(10, 100, 50, 1, 'Level ', 100)
+gui.add_element(level_counter)
+level_counter.show()
+
 
 all_sprites = pygame.sprite.Group()
 spawn_z(all_sprites)
-m = MedKit(10 * 32, find_zy(10) * 32, all_sprites)
-gui.add_element(m)
 gui.spawn_medkits()
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
@@ -616,8 +656,8 @@ while running:
         gui.update()
     gui.render(screen)
     buttons.draw(screen)
-    all_sprites.draw(screen)
     all_sprites.update()
+    all_sprites.draw(screen)
     if flag:
         c = cursor.get_rect().width
         screen.blit(cursor, (x - c // 2, y - c // 2))
