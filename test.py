@@ -4,16 +4,29 @@ import numpy
 import json
 import sys
 
+def parse(s):
+    f = json.load(open(s))
+    x = f['layers'][1]['data']
+    x = numpy.array(x)
+    x.resize(f['layers'][1]['height'], f['layers'][1]['width'])
+    return list(x)
+
+def change_map(map):
+    global main_arr
+    main_arr = map[1]
+
 pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77)
 CELL_SIZE = 32
 WIDTH = 700
+MAP_COL = 2
 PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png'), pygame.image.load(
     'buttons/mute1w.png'), pygame.image.load(
     'buttons/mute2w.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack3.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
-MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map2.json'
+#MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map2.json'
+MAPS = [[pygame.image.load('map/map{}.png'.format(str(i))), parse('map/map{}.json'.format(str(i)))] for i in range(1, MAP_COL + 1)]
 AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
@@ -72,18 +85,22 @@ class Background:
         elif self.x == -(len(main_arr[0]) * CELL_SIZE - WIDTH):
             self.rep = True
             self.x -= d
+            self.next_map = random.choice(MAPS)
         elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) > self.x > -(len(main_arr[0]) * CELL_SIZE):
             self.x -= d
             self.rep = True
+            #self.next_map = random.choice(MAPS)
         else:
             self.x += len(main_arr[0]) * CELL_SIZE
+            change_map(self.next_map)
+            self.img = self.next_map[0]
             self.rep = False
             gui.zero()
 
     def render(self):
         screen.blit(self.img, (self.x, self.y))
         if self.rep:
-            screen.blit(self.img, (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
+            screen.blit(self.next_map[0], (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
     def zero(self):
         self.rep = False
@@ -481,14 +498,6 @@ class Button(Label):
         return False
 
 
-def parse(s):
-    f = json.load(open(s))
-    x = f['layers'][1]['data']
-    x = numpy.array(x)
-    x.resize(f['layers'][1]['height'], f['layers'][1]['width'])
-    return list(x)
-
-
 def step_able(z):
     f0 = int(z.x + z.d) + 1 < len(main_arr[0])
     if not f0:
@@ -597,8 +606,8 @@ def find_y(d):
 
     return miny, maxy
 
-
-main_arr = parse(MAPJSON)
+cur_map = random.choice(MAPS)
+main_arr = cur_map[1]
 miny, maxy = find_y(main_arr)
 size = w, h = WIDTH, (maxy * CELL_SIZE - miny * CELL_SIZE)
 screen = pygame.display.set_mode(size)
@@ -618,7 +627,7 @@ while True:
     health = Health()
     gun = Gun()
 
-    bg = Background(0, 0, MAPPNG)
+    bg = Background(0, 0, cur_map[0])
     counter = Counter(x=None, y=43, font=50, start=0, text='Score: ')
     gui.add_element(bg)
     gui.add_element(counter)
