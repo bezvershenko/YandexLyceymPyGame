@@ -3,6 +3,7 @@ import random
 import numpy
 import json
 import sys
+from record import *
 
 def parse(s):
     f = json.load(open(s))
@@ -16,7 +17,8 @@ def change_map(map):
     main_arr = map[1]
 
 pygame.init()
-WHITE, GREEN, BLUE, RED, DARKBLUE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77)
+WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
+    250, 113, 36)
 CELL_SIZE = 32
 WIDTH = 700
 MAP_COL = 2
@@ -35,7 +37,7 @@ CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
 class Particle(pygame.sprite.Sprite):
     # сгенерируем частицы разного размера
     fire = [PARTICLES]
-    for scale in (8, 16, 32):
+    for scale in (4, 8, 16, 32):
         fire.append(pygame.transform.scale(fire[0], (scale, scale)))
 
     def __init__(self, pos, dx, dy):
@@ -330,8 +332,8 @@ class Health:
 
     def damage(self):
         global running
-        if self.health - 5 > 0:
-            self.health -= 5
+        if self.health - 40 > 0:
+            self.health -= 40
         else:
             self.health = 0
             running = False
@@ -385,7 +387,7 @@ class Gun:
     def damage(self):
         if self.health - 20 >= 0:
             self.health -= 20
-            if self.health < 20:
+            if self.health < 10:
                 self.reload = False
 
     def update(self):
@@ -465,7 +467,7 @@ class Label:
 class Button(Label):
     def __init__(self, rect, text):
         super().__init__(rect, text)
-        self.bgcolor = (250, 113, 36)
+        self.bgcolor = ORANGE
         self.pressed = False
 
     def render(self, surface):
@@ -514,10 +516,13 @@ def terminate():
 
 
 def start_screen():
+    font = pygame.font.Font(MAIN_FONT, 50)
     img = pygame.image.load('img_res/start_screen2.png')
-    button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'PLAY')
-    button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'HIGHSCORE')
-    button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'EXIT')
+    best_score = get_result('record.txt')
+    button_play = Button((w // 2 - 100, h // 2 - 15, 200, 50), 'PLAY')
+    button_exit = Button((w // 2 - 100, h // 2 + 45, 200, 50), 'EXIT')
+    rendered_text = font.render('BEST SCORE: ' + str(best_score), 1, WHITE)
+    rendered_rect = rendered_text.get_rect(center=pygame.Rect(w // 2 - 100, h // 2 + 140, 200, 50).center)
     screen.blit(img, (0, 0))
     while True:
         if mute.mute:
@@ -531,24 +536,38 @@ def start_screen():
                 return
             elif button_exit.get_event(event):
                 terminate()
-            elif button_highscore.get_event(event):
-                pass
+
             buttons.apply_event(event)
         screen.blit(img, (0, 0))
         button_play.render(screen)
-        button_highscore.render(screen)
         button_exit.render(screen)
         buttons.draw(screen)
-
+        screen.blit(rendered_text, rendered_rect)
         pygame.display.flip()
         clock.tick(30)
 
 
-def game_over_screen():
+def game_over_screen(result):
+    best_score = get_result('record.txt')
+    game_result = result
+    font = pygame.font.Font(MAIN_FONT, 50)
+    if game_result > best_score:
+        set_result('record.txt', game_result)
+        best_score_text = 'NEW RECORD!'
+    else:
+        best_score_text = 'BEST SCORE: %d' % best_score
+    game_result_text = 'YOUR SCORE: %d' % game_result
     img = pygame.image.load('img_res/game_over.png')
-    button_play = Button((w // 2 - 100, h // 2 - 120, 220, 50), 'PLAY AGAIN')
-    button_highscore = Button((w // 2 - 100, h // 2 - 60, 220, 50), 'HIGHSCORE')
-    button_exit = Button((w // 2 - 100, h // 2, 220, 50), 'EXIT')
+    button_play = Button((w // 2 - 110, h // 2 - 20, 220, 50), 'PLAY AGAIN')
+    button_exit = Button((w // 2 - 110, h // 2 + 40, 220, 50), 'EXIT')
+    screen.blit(img, (0, 0))
+
+    rendered_text1 = font.render(best_score_text, 1, WHITE)
+    rendered_rect1 = rendered_text1.get_rect(center=pygame.Rect(w // 2 - 100, 200, 200, 50).center)
+
+    rendered_text2 = font.render(game_result_text, 1, WHITE)
+    rendered_rect2 = rendered_text2.get_rect(center=pygame.Rect(w // 2 - 100, 250, 200, 50).center)
+
     screen.blit(img, (0, 0))
     while True:
         if mute.mute:
@@ -562,15 +581,14 @@ def game_over_screen():
                 return
             elif button_exit.get_event(event):
                 terminate()
-            elif button_highscore.get_event(event):
-                pass
+
             buttons.apply_event(event)
         screen.blit(img, (0, 0))
         button_play.render(screen)
-        button_highscore.render(screen)
         button_exit.render(screen)
         buttons.draw(screen)
-
+        screen.blit(rendered_text1, rendered_rect1)
+        screen.blit(rendered_text2, rendered_rect2)
         pygame.display.flip()
         clock.tick(30)
 
@@ -622,7 +640,6 @@ soundtrack = pygame.mixer.Sound(SOUNDTRACK)
 soundtrack.play(loops=-1)
 start_screen()
 while True:
-
     gui = GUI()
     health = Health()
     gun = Gun()
@@ -708,4 +725,4 @@ while True:
         clock.tick(30)
     pygame.mouse.set_visible(True)
     buttons.remove(pause)
-    game_over_screen()
+    game_over_screen(counter.cnt)
