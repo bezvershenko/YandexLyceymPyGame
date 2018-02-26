@@ -12,9 +12,10 @@ def parse(s):
     x.resize(f['layers'][1]['height'], f['layers'][1]['width'])
     return list(x)
 
-def change_map(map):
-    global main_arr
-    main_arr = map[1]
+def change_map(mapp):
+    global main_arr, cur_map
+    main_arr = mapp[1]
+    cur_map = mapp
 
 pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
@@ -333,6 +334,7 @@ class Health:
     def damage(self):
         global running
         if self.health - 40 > 0:
+            return
             self.health -= 40
         else:
             self.health = 0
@@ -709,7 +711,7 @@ while True:
 
         pygame.mouse.set_visible(False)
         if not pause.pause:
-            gui.move_cam(cam_speed)
+            gui.move_cam(cam_speed + 10)
             current_x += cam_speed
             gui.move()
             gui.update()
