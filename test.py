@@ -16,6 +16,8 @@ def change_map(mapp):
     global main_arr, cur_map
     main_arr = mapp[1]
     cur_map = mapp
+    print('it changes!!')
+    #print(mapp[1][10])
 
 pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
@@ -81,23 +83,24 @@ class Background:
         self.y = y
         self.img = img
         self.rep = False
+        self.do_again = True
 
     def move_cam(self, d):
         if self.x > -(len(main_arr[0]) * CELL_SIZE - WIDTH):
             self.x -= d
-        elif self.x == -(len(main_arr[0]) * CELL_SIZE - WIDTH):
-            self.rep = True
-            self.x -= d
-            self.next_map = random.choice(MAPS)
-        elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) > self.x > -(len(main_arr[0]) * CELL_SIZE):
+        elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) + 100 >= self.x > -(len(main_arr[0]) * CELL_SIZE):
             self.x -= d
             self.rep = True
-            #self.next_map = random.choice(MAPS)
+            if self.do_again:
+                self.next_map = random.choice(MAPS)
+                self.do_again = False
         else:
             self.x += len(main_arr[0]) * CELL_SIZE
+            self.x = 0
             change_map(self.next_map)
             self.img = self.next_map[0]
             self.rep = False
+            self.do_again = True
             gui.zero()
 
     def render(self):
@@ -334,7 +337,7 @@ class Health:
     def damage(self):
         global running
         if self.health - 40 > 0:
-            return
+            #return
             self.health -= 40
         else:
             self.health = 0
@@ -641,6 +644,7 @@ soundtrack = pygame.mixer.Sound(SOUNDTRACK)
 # Soundtrack by  Matthew Pablo http://www.matthewpablo.com/contact
 soundtrack.play(loops=-1)
 start_screen()
+print(main_arr[10])
 while True:
     gui = GUI()
     health = Health()
@@ -711,7 +715,7 @@ while True:
 
         pygame.mouse.set_visible(False)
         if not pause.pause:
-            gui.move_cam(cam_speed)
+            gui.move_cam(cam_speed + 10)
             current_x += cam_speed
             gui.move()
             gui.update()
