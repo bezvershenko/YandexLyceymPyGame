@@ -711,7 +711,7 @@ while True:
 
         pygame.mouse.set_visible(False)
         if not pause.pause:
-            gui.move_cam(cam_speed + 10)
+            gui.move_cam(cam_speed)
             current_x += cam_speed
             gui.move()
             gui.update()
