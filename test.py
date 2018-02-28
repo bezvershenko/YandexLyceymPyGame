@@ -4,6 +4,23 @@ import numpy
 import json
 import sys
 
+from record import *
+
+def parse(s):
+    f = json.load(open(s))
+    x = f['layers'][1]['data']
+    x = numpy.array(x)
+    x.resize(f['layers'][1]['height'], f['layers'][1]['width'])
+    return list(x)
+
+def change_map(mapp):
+    global main_arr, cur_map
+    main_arr = mapp[1]
+    cur_map = mapp
+    print('it changes!!')
+    #print(mapp[1][10])
+
+
 pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77)
 CELL_SIZE = 32
@@ -65,19 +82,25 @@ class Background:
         self.y = y
         self.img = img
         self.rep = False
+        self.do_again = True
 
     def move_cam(self, d):
         if self.x > -(len(main_arr[0]) * CELL_SIZE - WIDTH):
             self.x -= d
-        elif self.x == -(len(main_arr[0]) * CELL_SIZE - WIDTH):
-            self.rep = True
-            self.x -= d
-        elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) > self.x > -(len(main_arr[0]) * CELL_SIZE):
+
+        elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) + 100 >= self.x > -(len(main_arr[0]) * CELL_SIZE):
             self.x -= d
             self.rep = True
+            if self.do_again:
+                self.next_map = random.choice(MAPS)
+                self.do_again = False
         else:
             self.x += len(main_arr[0]) * CELL_SIZE
+            self.x = 0
+            change_map(self.next_map)
+            self.img = self.next_map[0]
             self.rep = False
+            self.do_again = True
             gui.zero()
 
     def render(self):
@@ -568,7 +591,7 @@ def game_over_screen():
 
 def find_zy(g):
     ans = len(main_arr[0])
-    for i in range(5, len(main_arr[0])):
+    for i in range(1, len(main_arr[0])):
         if main_arr[i][g] != 0:
             ans = min(ans, i)
             return ans - 1
@@ -586,21 +609,12 @@ def spawn_z(all_sprites):
         frequency -= 0.5
 
 
-def find_y(d):
-    maxy = 0
-    miny = len(d)
-    for i in range(len(d[0])):
-        for j in range(len(d)):
-            if d[j][i] != 0:
-                maxy = max(maxy, j)
-                miny = min(miny, j)
-
-    return miny, maxy
 
 
-main_arr = parse(MAPJSON)
-miny, maxy = find_y(main_arr)
-size = w, h = WIDTH, (maxy * CELL_SIZE - miny * CELL_SIZE)
+cur_map = random.choice(MAPS)
+main_arr = cur_map[1]
+size = w, h = WIDTH, (len(main_arr) * CELL_SIZE)
+
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
 pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
@@ -612,6 +626,7 @@ soundtrack = pygame.mixer.Sound(SOUNDTRACK)
 # Soundtrack by  Matthew Pablo http://www.matthewpablo.com/contact
 soundtrack.play(loops=-1)
 start_screen()
+print(main_arr[10])
 while True:
 
     gui = GUI()
