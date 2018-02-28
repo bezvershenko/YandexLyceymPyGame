@@ -18,8 +18,6 @@ def change_map(mapp):
     global main_arr, cur_map
     main_arr = mapp[1]
     cur_map = mapp
-    print('it changes!!')
-    # print(mapp[1][10])
 
 
 pygame.init()
@@ -33,7 +31,6 @@ PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png')
     'buttons/mute2w.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack3.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
-# MAPPNG, MAPJSON = pygame.image.load('map/map2.png'), 'map/map2.json'
 MAPS = [[pygame.image.load('map/map{}.png'.format(str(i))), parse('map/map{}.json'.format(str(i)))] for i in
         range(1, MAP_COL + 1)]
 AIM = pygame.image.load('img_res/aim1w.png')
@@ -340,9 +337,8 @@ class Health:
 
     def damage(self):
         global running
-        if self.health - 40 > 0:
-            # return
-            self.health -= 40
+        if self.health - 5 > 0:
+            self.health -= 5
         else:
             self.health = 0
             running = False
@@ -636,7 +632,7 @@ soundtrack = pygame.mixer.Sound(SOUNDTRACK)
 # Soundtrack by  Matthew Pablo http://www.matthewpablo.com/contact
 soundtrack.play(loops=-1)
 start_screen()
-print(main_arr[10])
+
 while True:
     gui = GUI()
     health = Health()
