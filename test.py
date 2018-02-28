@@ -3,11 +3,26 @@ import random
 import numpy
 import json
 import sys
+
 from record import *
 
+def parse(s):
+    f = json.load(open(s))
+    x = f['layers'][1]['data']
+    x = numpy.array(x)
+    x.resize(f['layers'][1]['height'], f['layers'][1]['width'])
+    return list(x)
+
+def change_map(mapp):
+    global main_arr, cur_map
+    main_arr = mapp[1]
+    cur_map = mapp
+    print('it changes!!')
+    #print(mapp[1][10])
+
+
 pygame.init()
-WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
-    250, 113, 36)
+WHITE, GREEN, BLUE, RED, DARKBLUE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77)
 CELL_SIZE = 32
 WIDTH = 700
 PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png'), pygame.image.load(
@@ -24,7 +39,7 @@ CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
 class Particle(pygame.sprite.Sprite):
     # сгенерируем частицы разного размера
     fire = [PARTICLES]
-    for scale in (4, 8, 16, 32):
+    for scale in (8, 16, 32):
         fire.append(pygame.transform.scale(fire[0], (scale, scale)))
 
     def __init__(self, pos, dx, dy):
@@ -67,19 +82,25 @@ class Background:
         self.y = y
         self.img = img
         self.rep = False
+        self.do_again = True
 
     def move_cam(self, d):
         if self.x > -(len(main_arr[0]) * CELL_SIZE - WIDTH):
             self.x -= d
-        elif self.x == -(len(main_arr[0]) * CELL_SIZE - WIDTH):
-            self.rep = True
-            self.x -= d
-        elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) > self.x > -(len(main_arr[0]) * CELL_SIZE):
+
+        elif -(len(main_arr[0]) * CELL_SIZE - WIDTH) + 100 >= self.x > -(len(main_arr[0]) * CELL_SIZE):
             self.x -= d
             self.rep = True
+            if self.do_again:
+                self.next_map = random.choice(MAPS)
+                self.do_again = False
         else:
             self.x += len(main_arr[0]) * CELL_SIZE
+            self.x = 0
+            change_map(self.next_map)
+            self.img = self.next_map[0]
             self.rep = False
+            self.do_again = True
             gui.zero()
 
     def render(self):
@@ -315,8 +336,8 @@ class Health:
 
     def damage(self):
         global running
-        if self.health - 40 > 0:
-            self.health -= 40
+        if self.health - 5 > 0:
+            self.health -= 5
         else:
             self.health = 0
             running = False
@@ -370,7 +391,7 @@ class Gun:
     def damage(self):
         if self.health - 20 >= 0:
             self.health -= 20
-            if self.health < 10:
+            if self.health < 20:
                 self.reload = False
 
     def update(self):
@@ -450,7 +471,7 @@ class Label:
 class Button(Label):
     def __init__(self, rect, text):
         super().__init__(rect, text)
-        self.bgcolor = ORANGE
+        self.bgcolor = (250, 113, 36)
         self.pressed = False
 
     def render(self, surface):
@@ -507,13 +528,10 @@ def terminate():
 
 
 def start_screen():
-    font = pygame.font.Font(MAIN_FONT, 50)
     img = pygame.image.load('img_res/start_screen2.png')
-    best_score = get_result('record.txt')
-    button_play = Button((w // 2 - 100, h // 2 - 15, 200, 50), 'PLAY')
-    button_exit = Button((w // 2 - 100, h // 2 + 45, 200, 50), 'EXIT')
-    rendered_text = font.render('BEST SCORE: ' + str(best_score), 1, WHITE)
-    rendered_rect = rendered_text.get_rect(center=pygame.Rect(w // 2 - 100, h // 2 + 140, 200, 50).center)
+    button_play = Button((w // 2 - 100, h // 2 - 25, 200, 50), 'PLAY')
+    button_highscore = Button((w // 2 - 100, h // 2 + 35, 200, 50), 'HIGHSCORE')
+    button_exit = Button((w // 2 - 100, h // 2 + 95, 200, 50), 'EXIT')
     screen.blit(img, (0, 0))
     while True:
         if mute.mute:
@@ -527,38 +545,24 @@ def start_screen():
                 return
             elif button_exit.get_event(event):
                 terminate()
-
+            elif button_highscore.get_event(event):
+                pass
             buttons.apply_event(event)
         screen.blit(img, (0, 0))
         button_play.render(screen)
+        button_highscore.render(screen)
         button_exit.render(screen)
         buttons.draw(screen)
-        screen.blit(rendered_text, rendered_rect)
+
         pygame.display.flip()
         clock.tick(30)
 
 
-def game_over_screen(result):
-    best_score = get_result('record.txt')
-    game_result = result
-    font = pygame.font.Font(MAIN_FONT, 50)
-    if game_result > best_score:
-        set_result('record.txt', game_result)
-        best_score_text = 'NEW RECORD!'
-    else:
-        best_score_text = 'BEST SCORE: %d' % best_score
-    game_result_text = 'YOUR SCORE: %d' % game_result
+def game_over_screen():
     img = pygame.image.load('img_res/game_over.png')
-    button_play = Button((w // 2 - 110, h // 2 - 20, 220, 50), 'PLAY AGAIN')
-    button_exit = Button((w // 2 - 110, h // 2 + 40, 220, 50), 'EXIT')
-    screen.blit(img, (0, 0))
-
-    rendered_text1 = font.render(best_score_text, 1, WHITE)
-    rendered_rect1 = rendered_text1.get_rect(center=pygame.Rect(w // 2 - 100, 200, 200, 50).center)
-
-    rendered_text2 = font.render(game_result_text, 1, WHITE)
-    rendered_rect2 = rendered_text2.get_rect(center=pygame.Rect(w // 2 - 100, 250, 200, 50).center)
-
+    button_play = Button((w // 2 - 100, h // 2 - 120, 220, 50), 'PLAY AGAIN')
+    button_highscore = Button((w // 2 - 100, h // 2 - 60, 220, 50), 'HIGHSCORE')
+    button_exit = Button((w // 2 - 100, h // 2, 220, 50), 'EXIT')
     screen.blit(img, (0, 0))
     while True:
         if mute.mute:
@@ -572,21 +576,22 @@ def game_over_screen(result):
                 return
             elif button_exit.get_event(event):
                 terminate()
-
+            elif button_highscore.get_event(event):
+                pass
             buttons.apply_event(event)
         screen.blit(img, (0, 0))
         button_play.render(screen)
+        button_highscore.render(screen)
         button_exit.render(screen)
         buttons.draw(screen)
-        screen.blit(rendered_text1, rendered_rect1)
-        screen.blit(rendered_text2, rendered_rect2)
+
         pygame.display.flip()
         clock.tick(30)
 
 
 def find_zy(g):
     ans = len(main_arr[0])
-    for i in range(5, len(main_arr[0])):
+    for i in range(1, len(main_arr[0])):
         if main_arr[i][g] != 0:
             ans = min(ans, i)
             return ans - 1
@@ -604,21 +609,12 @@ def spawn_z(all_sprites):
         frequency -= 0.5
 
 
-def find_y(d):
-    maxy = 0
-    miny = len(d)
-    for i in range(len(d[0])):
-        for j in range(len(d)):
-            if d[j][i] != 0:
-                maxy = max(maxy, j)
-                miny = min(miny, j)
-
-    return miny, maxy
 
 
-main_arr = parse(MAPJSON)
-miny, maxy = find_y(main_arr)
-size = w, h = WIDTH, (maxy * CELL_SIZE - miny * CELL_SIZE)
+cur_map = random.choice(MAPS)
+main_arr = cur_map[1]
+size = w, h = WIDTH, (len(main_arr) * CELL_SIZE)
+
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
 pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
@@ -630,7 +626,9 @@ soundtrack = pygame.mixer.Sound(SOUNDTRACK)
 # Soundtrack by  Matthew Pablo http://www.matthewpablo.com/contact
 soundtrack.play(loops=-1)
 start_screen()
+print(main_arr[10])
 while True:
+
     gui = GUI()
     health = Health()
     gun = Gun()
@@ -716,4 +714,4 @@ while True:
         clock.tick(30)
     pygame.mouse.set_visible(True)
     buttons.remove(pause)
-    game_over_screen(counter.cnt)
+    game_over_screen()
