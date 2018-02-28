@@ -600,7 +600,7 @@ def game_over_screen(result):
 
 def find_zy(g):
     ans = len(main_arr[0])
-    for i in range(5, len(main_arr[0])):
+    for i in range(1, len(main_arr[0])):
         if main_arr[i][g] != 0:
             ans = min(ans, i)
             return ans - 1
@@ -618,21 +618,10 @@ def spawn_z(all_sprites):
         frequency -= 0.5
 
 
-def find_y(d):
-    maxy = 0
-    miny = len(d)
-    for i in range(len(d[0])):
-        for j in range(len(d)):
-            if d[j][i] != 0:
-                maxy = max(maxy, j)
-                miny = min(miny, j)
-
-    return miny, maxy
 
 cur_map = random.choice(MAPS)
 main_arr = cur_map[1]
-miny, maxy = find_y(main_arr)
-size = w, h = WIDTH, (maxy * CELL_SIZE - miny * CELL_SIZE)
+size = w, h = WIDTH, (len(main_arr) * CELL_SIZE)
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
 pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
@@ -715,7 +704,7 @@ while True:
 
         pygame.mouse.set_visible(False)
         if not pause.pause:
-            gui.move_cam(cam_speed + 10)
+            gui.move_cam(cam_speed)
             current_x += cam_speed
             gui.move()
             gui.update()
