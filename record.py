@@ -11,5 +11,3 @@ def set_result(path, result):
 
 def clear(path):
     set_result(path, 0)
-
-
