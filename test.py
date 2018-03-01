@@ -5,77 +5,24 @@ import json
 import sys
 from record import *
 
-
-def parse(s):
-    f = json.load(open(s))
-    x = f['layers'][1]['data']
-    x = numpy.array(x)
-    x.resize(f['layers'][1]['height'], f['layers'][1]['width'])
-    return list(x)
-
-
-def change_map(mapp):
-    global main_arr, cur_map
-    main_arr = mapp[1]
-    cur_map = mapp
-
-
 pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
     250, 113, 36)
 CELL_SIZE = 32
-WIDTH = 700
-MAP_COL = 2
+N_MAPS = 2
+GRAVITY = 0.1
 PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png'), pygame.image.load(
     'buttons/mute1w.png'), pygame.image.load(
     'buttons/mute2w.png'), pygame.image.load('img_res/health.png'), pygame.transform.scale(
     pygame.image.load('img_res/particles.png'), (64, 64))
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack3.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
 MAPS = [[pygame.image.load('map/map{}.png'.format(str(i))), parse('map/map{}.json'.format(str(i)))] for i in
-        range(1, MAP_COL + 1)]
+        range(1, N_MAPS + 1)]
+
 AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
-
-
-class Particle(pygame.sprite.Sprite):
-    # сгенерируем частицы разного размера
-    fire = [PARTICLES]
-    for scale in (4, 8, 16, 32):
-        fire.append(pygame.transform.scale(fire[0], (scale, scale)))
-
-    def __init__(self, pos, dx, dy):
-        super().__init__(all_sprites)
-        self.image = random.choice(self.fire)
-        self.rect = self.image.get_rect()
-
-        # у каждой частицы своя скорость - это вектор
-        self.velocity = [dx, dy]
-        # и свои координаты
-        self.rect.x, self.rect.y = pos
-
-        # гравитация будет одинаковой
-        self.gravity = 0.1
-
-    def update(self):
-        # применяем гравитационный эффект:
-        # движение с ускорением под действием гравитации
-        self.velocity[1] += self.gravity
-        # перемещаем частицу
-        self.rect.x += self.velocity[0]
-        self.rect.y += self.velocity[1]
-        # убиваем, если частица ушла за экран
-        if not self.rect.colliderect(screen_rect):
-            self.kill()
-
-
-def create_particles(position):
-    # количество создаваемых частиц
-    particle_count = 20
-    # возможные скорости
-    numbers = range(-10, 10)
-    for _ in range(particle_count):
-        Particle(position, random.choice(numbers), random.choice(numbers))
+cam_speed, frequency, current_x = 2, 7, 0
 
 
 class Background:
@@ -85,6 +32,7 @@ class Background:
         self.img = img
         self.rep = False
         self.do_again = True
+        self.next_map = None
 
     def move_cam(self, d):
         if self.x > -(len(main_arr[0]) * CELL_SIZE - WIDTH):
@@ -110,19 +58,66 @@ class Background:
             screen.blit(self.next_map[0], (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
     def zero(self):
+        global cam_speed
         self.rep = False
         self.x = 0
         for i in all_sprites:
             if isinstance(i, Zombie):
                 gui.erase(i)
                 all_sprites.remove(i)
-        spawn_z(all_sprites)
-        global cam_speed, current_x
+        spawn_zombies(all_sprites, frequency)
         if cam_speed < 4:
             cam_speed += 0.6
         gui.spawn_medkits()
         level_counter.add()
         level_counter.show()
+
+
+class Inscription:
+    def __init__(self, x=None, y=None, text='', time_limit=0, font=50):
+        self.text = text
+        self.font = pygame.font.Font(MAIN_FONT, 50)
+        self.x = x
+        self.y = y
+        if time_limit == 0:
+            self.islimited = False
+        else:
+            self.time_limit = time_limit
+            self.islimited = True
+            self.time_left = 0
+
+    def render(self):
+        if self.islimited:
+            if self.time_left == 0:
+                rendtext = ''
+            else:
+                rendtext = self.text
+        else:
+            rendtext = self.text
+        d = self.font.render(rendtext, True, WHITE)
+        x = self.x if self.x is not None else WIDTH // 2 - d.get_rect().width // 2 + 5
+        y = self.y if self.y is not None else 0
+        screen.blit(d, (x, y))
+
+    def update(self):
+        if self.islimited:
+            self.time_left = max(0, self.time_left - 1)
+
+    def show(self):
+        if self.islimited:
+            self.time_left = self.time_limit
+
+
+class Counter(Inscription):
+    def __init__(self, x=None, y=None, font=50, start=0, text=None, time_limit=0):
+        self.cnt = start
+        self.rend = text
+        self.text = self.rend + str(self.cnt)
+        super().__init__(x=x, y=y, text=self.text, font=font, time_limit=time_limit)
+
+    def add(self):
+        self.cnt += 1
+        self.text = self.rend + str(self.cnt)
 
 
 class GUI:
@@ -177,7 +172,118 @@ class GUI:
     def spawn_medkits(self):
         for i in range(len(main_arr[0])):
             if random.randrange(0, 100) <= 1:
-                gui.add_element(MedKit(i, find_zy(i), all_sprites))
+                gui.add_element(MedKit(i, find_y_position(i), all_sprites))
+
+
+class Label:
+    def __init__(self, rect, text, text_color=DARKBLUE, background_color=pygame.Color('white')):
+        self.rect = pygame.Rect(rect)
+        self.text = text
+        self.bgcolor = background_color
+        self.font_color = text_color
+        # Рассчитываем размер шрифта в зависимости от высоты
+        self.font = pygame.font.Font(MAIN_FONT, self.rect.height - 15)
+        self.rendered_text = None
+        self.rendered_rect = None
+
+    def render(self, surface):
+        if self.bgcolor != -1:
+            surface.fill(self.bgcolor, self.rect)
+        self.rendered_text = self.font.render(self.text, 1, self.font_color)
+        self.rendered_rect = self.rendered_text.get_rect(x=self.rect.x + 2, centery=self.rect.centery)
+        # выводим текст
+        surface.blit(self.rendered_text, self.rendered_rect)
+
+
+class Button(Label):
+    def __init__(self, rect, text):
+        super().__init__(rect, text)
+        self.bgcolor = ORANGE
+        self.pressed = False
+
+    def render(self, surface):
+
+        if not self.pressed:
+            surface.fill(self.bgcolor, self.rect)
+            self.rendered_text = self.font.render(self.text, 1, self.font_color)
+            self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
+        else:
+            surface.fill(self.font_color, self.rect)
+            self.rendered_text = self.font.render(self.text, 1, self.bgcolor)
+            self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
+
+        surface.blit(self.rendered_text, self.rendered_rect)
+
+    def get_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                self.pressed = True
+                return False
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.pressed:
+            self.pressed = False
+            return True
+        elif event.type == pygame.MOUSEMOTION:
+            if self.rect.collidepoint(event.pos):
+                self.font_color = WHITE
+            if not self.rect.collidepoint(event.pos):
+                self.font_color = DARKBLUE
+
+        return False
+
+
+class Health:
+    def __init__(self):
+        self.health = 100
+        self.x = 10
+        self.y = 40
+        self.h = 50
+
+    def render(self):
+
+        pygame.draw.rect(screen, GREEN, (self.x, self.y, self.health, self.h))
+        pygame.draw.rect(screen, WHITE, (self.x, self.y, 100, self.h), 3)
+
+    def damage(self):
+        global running
+        if self.health - 5 > 0:
+            self.health -= 5
+        else:
+            self.health = 0
+            running = False
+
+    def heal(self):
+        extra = random.choice([5, 10, 20, 25])
+        self.health = min(100, self.health + extra)
+
+
+class Gun:
+    def __init__(self):
+        self.health = 100
+        self.x = 120
+        self.y = 40
+        self.h = 50
+        self.reload = True
+
+    def render(self):
+        pygame.draw.rect(screen, BLUE if self.reload else RED,
+                         (self.x, self.y, self.health, self.h))
+        pygame.draw.rect(screen, WHITE, (self.x, self.y, 100, self.h), 3)
+
+    def damage(self):
+        if self.health - 20 >= 0:
+            self.health -= 20
+            if self.health < 10:
+                self.health = 0
+                self.reload = False
+        else:
+            self.health = 0
+            self.reload = False
+
+    def update(self):
+        if self.health + 1 < 101:
+            self.health += 1
+        else:
+            self.reload = True
 
 
 class Buttons(pygame.sprite.Group):
@@ -187,6 +293,40 @@ class Buttons(pygame.sprite.Group):
     def apply_event(self, event):
         for sprite in self:
             sprite.apply_event(event)
+
+
+class Pause(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.pause = False
+        self.image = PAUSE
+        self.image = pygame.transform.scale(self.image, (50, 30))
+        self.x, self.y = WIDTH - 115, 47
+        self.rect = self.image.get_rect(x=self.x, y=self.y)
+
+    def apply_event(self, event):
+        if ((event.type == pygame.MOUSEBUTTONDOWN and event.button == 1) and self.rect.collidepoint(
+                event.pos)) or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            self.pause = not self.pause
+
+
+class Mute(pygame.sprite.Sprite):
+    d = {False: MUTE1, True: MUTE2}
+
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.mute = False
+        self.image = self.d[self.mute]
+        self.image = pygame.transform.scale(self.image, (40, 40))
+        self.x, self.y = WIDTH - 50, 43
+        self.rect = self.image.get_rect(x=self.x, y=self.y)
+
+    def apply_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
+                event.pos):
+            self.mute = not self.mute
+            self.image = self.d[self.mute]
+            self.image = pygame.transform.scale(self.image, (40, 40))
 
 
 class Zombie(pygame.sprite.Sprite):
@@ -211,7 +351,8 @@ class Zombie(pygame.sprite.Sprite):
 
     def move(self):
         if self.stage == -1:
-            if 0 <= self.rect.x <= 600:
+            spawn_x = random.randrange(300, 650)
+            if 0 <= self.rect.x <= spawn_x:
                 self.stage += 1
                 roar = pygame.mixer.Sound('music/brains%d.wav' % (random.randint(1, 3)))
                 roar.set_volume(0.6)
@@ -289,72 +430,13 @@ class Zombie(pygame.sprite.Sprite):
             counter.add()
 
 
-class Pause(pygame.sprite.Sprite):
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.pause = False
-        self.image = PAUSE
-        self.image = pygame.transform.scale(self.image, (50, 30))
-        self.x, self.y = w - 115, 47
-        self.rect = self.image.get_rect(x=self.x, y=self.y)
-
-    def apply_event(self, event):
-        if ((event.type == pygame.MOUSEBUTTONDOWN and event.button == 1) and self.rect.collidepoint(
-                event.pos)) or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-            self.pause = not self.pause
-
-
-class Mute(pygame.sprite.Sprite):
-    d = {False: MUTE1, True: MUTE2}
-
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.mute = False
-        self.image = self.d[self.mute]
-        self.image = pygame.transform.scale(self.image, (40, 40))
-        self.x, self.y = w - 50, 43
-        self.rect = self.image.get_rect(x=self.x, y=self.y)
-
-    def apply_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
-                event.pos):
-            self.mute = not self.mute
-            self.image = self.d[self.mute]
-            self.image = pygame.transform.scale(self.image, (40, 40))
-
-
-class Health:
-    def __init__(self):
-        self.health = 100
-        self.x = 10
-        self.y = 40
-        self.h = 50
-
-    def render(self):
-
-        pygame.draw.rect(screen, GREEN, (self.x, self.y, self.health, self.h))
-        pygame.draw.rect(screen, WHITE, (self.x, self.y, 100, self.h), 3)
-
-    def damage(self):
-        global running
-        if self.health - 5 > 0:
-            self.health -= 5
-        else:
-            self.health = 0
-            running = False
-
-    def heal(self):
-        extra = random.choice([5, 10, 20, 25])
-        self.health = min(100, self.health + extra)
-
-
 class MedKit(pygame.sprite.Sprite):
     def __init__(self, x, y, gr):
         super().__init__(gr)
-        self.x = x * 32
-        self.y = y * 32
+        self.x = x * CELL_SIZE
+        self.y = y * CELL_SIZE
         self.image = HEALTH
-        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.image = pygame.transform.scale(self.image, (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.x, self.y)
         self.moving = 0
@@ -376,133 +458,49 @@ class MedKit(pygame.sprite.Sprite):
         self.rect.x = self.x + self.moving
 
 
-class Gun:
-    def __init__(self):
-        self.health = 100
-        self.x = 120
-        self.y = 40
-        self.h = 50
-        self.reload = True
+class Particle(pygame.sprite.Sprite):
+    # сгенерируем частицы разного размера
+    fire = [PARTICLES]
+    for scale in (4, 8, 16, CELL_SIZE):
+        fire.append(pygame.transform.scale(fire[0], (scale, scale)))
 
-    def render(self):
-        pygame.draw.rect(screen, BLUE if self.reload else RED,
-                         (self.x, self.y, self.health, self.h))
-        pygame.draw.rect(screen, WHITE, (self.x, self.y, 100, self.h), 3)
+    def __init__(self, pos, dx, dy):
+        super().__init__(all_sprites)
+        self.image = random.choice(self.fire)
+        self.rect = self.image.get_rect()
 
-    def damage(self):
-        if self.health - 20 >= 0:
-            self.health -= 20
-            if self.health < 10:
-                self.reload = False
+        # у каждой частицы своя скорость - это вектор
+        self.velocity = [dx, dy]
+        # и свои координаты
+        self.rect.x, self.rect.y = pos
 
-    def update(self):
-        if self.health + 1 < 101:
-            self.health += 1
-        else:
-            self.reload = True
-
-
-class Inscription:
-    def __init__(self, x=None, y=None, text='', time_limit=0, font=50):
-        self.text = text
-        self.font = pygame.font.Font(MAIN_FONT, 50)
-        self.x = x
-        self.y = y
-        if time_limit == 0:
-            self.islimited = False
-        else:
-            self.time_limit = time_limit
-            self.islimited = True
-            self.time_left = 0
-
-    def render(self):
-        if self.islimited:
-            if self.time_left == 0:
-                rendtext = ''
-            else:
-                rendtext = self.text
-        else:
-            rendtext = self.text
-        d = self.font.render(rendtext, True, WHITE)
-        x = self.x if self.x != None else w // 2 - d.get_rect().width // 2 + 5
-        y = self.y if self.y != None else 0
-        screen.blit(d, (x, y))
+        # гравитация будет одинаковой
+        self.gravity = GRAVITY
 
     def update(self):
-        if self.islimited:
-            self.time_left = max(0, self.time_left - 1)
-
-    def show(self):
-        if self.islimited:
-            self.time_left = self.time_limit
-
-
-class Counter(Inscription):
-    def __init__(self, x=None, y=None, font=50, start=0, text=None, time_limit=0):
-        self.cnt = start
-        self.rend = text
-        self.text = self.rend + str(self.cnt)
-        super().__init__(x=x, y=y, text=self.text, font=font, time_limit=time_limit)
-
-    def add(self):
-        self.cnt += 1
-        self.text = self.rend + str(self.cnt)
+        # применяем гравитационный эффект:
+        # движение с ускорением под действием гравитации
+        self.velocity[1] += self.gravity
+        # перемещаем частицу
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        # убиваем, если частица ушла за экран
+        if not self.rect.colliderect(screen_rect):
+            self.kill()
 
 
-class Label:
-    def __init__(self, rect, text, text_color=DARKBLUE, background_color=pygame.Color('white')):
-        self.rect = pygame.Rect(rect)
-        self.text = text
-        self.bgcolor = background_color
-        self.font_color = text_color
-        # Рассчитываем размер шрифта в зависимости от высоты
-        self.font = pygame.font.Font(MAIN_FONT, self.rect.height - 15)
-        self.rendered_text = None
-        self.rendered_rect = None
-
-    def render(self, surface):
-        if self.bgcolor != -1:
-            surface.fill(self.bgcolor, self.rect)
-        self.rendered_text = self.font.render(self.text, 1, self.font_color)
-        self.rendered_rect = self.rendered_text.get_rect(x=self.rect.x + 2, centery=self.rect.centery)
-        # выводим текст
-        surface.blit(self.rendered_text, self.rendered_rect)
+def parse(s):
+    f = json.load(open(s))
+    lines = f['layers'][1]['data']
+    lines = numpy.array(lines)
+    lines.resize(f['layers'][1]['height'], f['layers'][1]['width'])
+    return list(lines)
 
 
-class Button(Label):
-    def __init__(self, rect, text):
-        super().__init__(rect, text)
-        self.bgcolor = ORANGE
-        self.pressed = False
-
-    def render(self, surface):
-
-        if not self.pressed:
-            surface.fill(self.bgcolor, self.rect)
-            self.rendered_text = self.font.render(self.text, 1, self.font_color)
-            self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
-        else:
-            surface.fill(self.font_color, self.rect)
-            self.rendered_text = self.font.render(self.text, 1, self.bgcolor)
-            self.rendered_rect = self.rendered_text.get_rect(center=self.rect.center)
-
-        surface.blit(self.rendered_text, self.rendered_rect)
-
-    def get_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                self.pressed = True
-                return False
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.pressed:
-            self.pressed = False
-            return True
-        elif event.type == pygame.MOUSEMOTION:
-            if self.rect.collidepoint(event.pos):
-                self.font_color = WHITE
-            if not self.rect.collidepoint(event.pos):
-                self.font_color = DARKBLUE
-
-        return False
+def change_map(mapp):
+    global main_arr, cur_map
+    main_arr = mapp[1]
+    cur_map = mapp
 
 
 def step_able(z):
@@ -524,10 +522,10 @@ def start_screen():
     font = pygame.font.Font(MAIN_FONT, 50)
     img = pygame.image.load('img_res/start_screen2.png')
     best_score = get_result('record.txt')
-    button_play = Button((w // 2 - 100, h // 2 - 15, 200, 50), 'PLAY')
-    button_exit = Button((w // 2 - 100, h // 2 + 45, 200, 50), 'EXIT')
+    button_play = Button((WIDTH // 2 - 100, HEIGHT // 2 - 15, 200, 50), 'PLAY')
+    button_exit = Button((WIDTH // 2 - 100, HEIGHT // 2 + 45, 200, 50), 'EXIT')
     rendered_text = font.render('BEST SCORE: ' + str(best_score), 1, WHITE)
-    rendered_rect = rendered_text.get_rect(center=pygame.Rect(w // 2 - 100, h // 2 + 140, 200, 50).center)
+    rendered_rect = rendered_text.get_rect(center=pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 140, 200, 50).center)
     screen.blit(img, (0, 0))
     while True:
         if mute.mute:
@@ -563,15 +561,15 @@ def game_over_screen(result):
         best_score_text = 'BEST SCORE: %d' % best_score
     game_result_text = 'YOUR SCORE: %d' % game_result
     img = pygame.image.load('img_res/game_over.png')
-    button_play = Button((w // 2 - 110, h // 2 - 20, 220, 50), 'PLAY AGAIN')
-    button_exit = Button((w // 2 - 110, h // 2 + 40, 220, 50), 'EXIT')
+    button_play = Button((WIDTH // 2 - 110, HEIGHT // 2 - 20, 220, 50), 'PLAY AGAIN')
+    button_exit = Button((WIDTH // 2 - 110, HEIGHT // 2 + 40, 220, 50), 'EXIT')
     screen.blit(img, (0, 0))
 
     rendered_text1 = font.render(best_score_text, 1, WHITE)
-    rendered_rect1 = rendered_text1.get_rect(center=pygame.Rect(w // 2 - 100, 200, 200, 50).center)
+    rendered_rect1 = rendered_text1.get_rect(center=pygame.Rect(WIDTH // 2 - 100, 200, 200, 50).center)
 
     rendered_text2 = font.render(game_result_text, 1, WHITE)
-    rendered_rect2 = rendered_text2.get_rect(center=pygame.Rect(w // 2 - 100, 250, 200, 50).center)
+    rendered_rect2 = rendered_text2.get_rect(center=pygame.Rect(WIDTH // 2 - 100, 250, 200, 50).center)
 
     screen.blit(img, (0, 0))
     while True:
@@ -598,7 +596,7 @@ def game_over_screen(result):
         clock.tick(30)
 
 
-def find_zy(g):
+def find_y_position(g):
     ans = len(main_arr[0])
     for i in range(1, len(main_arr[0])):
         if main_arr[i][g] != 0:
@@ -607,20 +605,29 @@ def find_zy(g):
     return -1
 
 
-def spawn_z(all_sprites):
-    global frequency
-    for i in range(10, len(main_arr[0]), int(frequency)):
-        y = find_zy(i)
+def spawn_zombies(sprite_group, freq):
+    for i in range(10, len(main_arr[0]), int(freq)):
+        y = find_y_position(i)
         if y is None:
             continue
-        gui.add_element(Zombie(i, y, all_sprites))
-    if frequency > 3:
-        frequency -= 0.5
+        gui.add_element(Zombie(i, y, sprite_group))
+    if freq > 3:
+        freq -= 0.5
+    return freq
+
+
+def create_particles(position):
+    # количество создаваемых частиц
+    particle_count = 20
+    # возможные скорости
+    numbers = range(-10, 10)
+    for _ in range(particle_count):
+        Particle(position, random.choice(numbers), random.choice(numbers))
 
 
 cur_map = random.choice(MAPS)
 main_arr = cur_map[1]
-size = w, h = WIDTH, (len(main_arr) * CELL_SIZE)
+size = WIDTH, HEIGHT = 700, (len(main_arr) * CELL_SIZE) - 2
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
 pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
@@ -649,18 +656,15 @@ while True:
     buttons.add(pause)
     pygame.mixer.init()
 
-    cam_speed = 2
-    frequency = 7
-    current_x = 0
     level_counter = Counter(10, 100, 50, 1, 'Level ', 100)
     gui.add_element(level_counter)
     level_counter.show()
 
     all_sprites = pygame.sprite.Group()
-    spawn_z(all_sprites)
+    frequency = spawn_zombies(all_sprites, frequency)
     gui.spawn_medkits()
 
-    screen_rect = (0, 0, WIDTH, h)
+    screen_rect = (0, 0, WIDTH, HEIGHT)
     cursor = pygame.transform.scale(AIM, CURSOR_BIG)
     pygame.mixer.init()
     flag = False
