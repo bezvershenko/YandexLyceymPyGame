@@ -5,6 +5,21 @@ import json
 import sys
 from record import *
 
+
+def parse(s):
+    f = json.load(open(s))
+    lines = f['layers'][1]['data']
+    lines = numpy.array(lines)
+    lines.resize(f['layers'][1]['height'], f['layers'][1]['width'])
+    return list(lines)
+
+
+def change_map(mapp):
+    global main_arr, cur_map
+    main_arr = mapp[1]
+    cur_map = mapp
+
+
 pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
     250, 113, 36)
@@ -487,20 +502,6 @@ class Particle(pygame.sprite.Sprite):
         # убиваем, если частица ушла за экран
         if not self.rect.colliderect(screen_rect):
             self.kill()
-
-
-def parse(s):
-    f = json.load(open(s))
-    lines = f['layers'][1]['data']
-    lines = numpy.array(lines)
-    lines.resize(f['layers'][1]['height'], f['layers'][1]['width'])
-    return list(lines)
-
-
-def change_map(mapp):
-    global main_arr, cur_map
-    main_arr = mapp[1]
-    cur_map = mapp
 
 
 def step_able(z):
