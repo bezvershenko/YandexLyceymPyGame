@@ -37,7 +37,7 @@ MAPS = [[pygame.image.load('map/map{}.png'.format(str(i))), parse('map/map{}.jso
 AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
-cam_speed, frequency, current_x = 2, 6, 0
+cam_speed, frequency, current_x = 10, 6, 0
 
 
 class Background:
@@ -73,16 +73,16 @@ class Background:
             screen.blit(self.next_map[0], (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
     def start_new_level(self):
-        global cam_speed
+        global cam_speed, frequency
         self.rep = False
         self.x = 0
         for i in all_sprites:
             if isinstance(i, Zombie):
                 gui.erase(i)
                 all_sprites.remove(i)
-        spawn_zombies(all_sprites, frequency)
-        if cam_speed < 6:
-            cam_speed += 0.6
+        frequency = spawn_zombies(all_sprites, frequency)
+        if cam_speed < 5:
+            cam_speed += 0.7
         gui.spawn_medkits()
         level_counter.add()
         level_counter.show()
@@ -261,6 +261,7 @@ class Health:
     def damage(self):
         global running
         if self.health - 5 > 0:
+            return
             self.health -= 5
         else:
             self.health = 0
@@ -618,7 +619,7 @@ def spawn_zombies(sprite_group, freq):
         if y is None:
             continue
         gui.add_element(Zombie(i, y, sprite_group))
-    if freq > 3:
+    if freq > 5:
         freq -= 1
     return freq
 
