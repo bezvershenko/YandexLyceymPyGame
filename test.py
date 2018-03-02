@@ -37,7 +37,7 @@ MAPS = [[pygame.image.load('map/map{}.png'.format(str(i))), parse('map/map{}.jso
 AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
-cam_speed, frequency, current_x = 2, 7, 0
+cam_speed, frequency, current_x = 2, 6, 0
 
 
 class Background:
@@ -65,14 +65,14 @@ class Background:
             self.img = self.next_map[0]
             self.rep = False
             self.do_again = True
-            gui.zero()
+            gui.start_new_level()
 
     def render(self):
         screen.blit(self.img, (self.x, self.y))
         if self.rep:
             screen.blit(self.next_map[0], (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
-    def zero(self):
+    def start_new_level(self):
         global cam_speed
         self.rep = False
         self.x = 0
@@ -81,7 +81,7 @@ class Background:
                 gui.erase(i)
                 all_sprites.remove(i)
         spawn_zombies(all_sprites, frequency)
-        if cam_speed < 4:
+        if cam_speed < 6:
             cam_speed += 0.6
         gui.spawn_medkits()
         level_counter.add()
@@ -178,11 +178,11 @@ class GUI:
                 self.elements.pop(i)
                 break
 
-    def zero(self):
+    def start_new_level(self):
         for element in self.elements:
-            zero = getattr(element, "zero", None)
-            if callable(zero):
-                element.zero()
+            start_new_level = getattr(element, "start_new_level", None)
+            if callable(start_new_level):
+                element.start_new_level()
 
     def spawn_medkits(self):
         for i in range(len(main_arr[0])):
@@ -350,15 +350,18 @@ class Zombie(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.d = random.choice([0.1, -0.1])
-        self.image = pygame.image.load(
-            'appear/appear_{}.png'.format(1))
-        self.rect = self.image.get_rect()
+        #self.image = pygame.image.load(
+        #    'appear/appear_{}.png'.format(1))
+        self.image = pygame.Surface((0, 0))
+        #self.rect = self.image.get_rect()
+        self.rect = pygame.image.load('appear/appear_{}.png'.format(1)).get_rect()
         self.rect.x = (self.x - 1) * CELL_SIZE
         self.rect.y = (self.y - 1) * CELL_SIZE - 16
         self.moving = -(CELL_SIZE // 2)
         self.sprite_num = 0
         self.stage = -1
         self.damage = True
+        self.spawn_x = random.randint(WIDTH // 2, WIDTH)
 
     def move_cam(self, d):
         self.moving -= d
@@ -366,8 +369,7 @@ class Zombie(pygame.sprite.Sprite):
 
     def move(self):
         if self.stage == -1:
-            spawn_x = random.randrange(300, 650)
-            if 0 <= self.rect.x <= spawn_x:
+            if 0 <= self.rect.x <= self.spawn_x:
                 self.stage += 1
                 roar = pygame.mixer.Sound('music/brains%d.wav' % (random.randint(1, 3)))
                 roar.set_volume(0.6)
@@ -456,9 +458,6 @@ class MedKit(pygame.sprite.Sprite):
         self.rect.topleft = (self.x, self.y)
         self.moving = 0
 
-    def render(self):
-        pygame.draw.rect(screen, pygame.Color('black'), self.rect)
-
     def get_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(
                 event.pos):
@@ -470,6 +469,8 @@ class MedKit(pygame.sprite.Sprite):
 
     def move_cam(self, d):
         self.moving -= d
+
+    def update(self):
         self.rect.x = self.x + self.moving
 
 
@@ -598,12 +599,17 @@ def game_over_screen(result):
 
 
 def find_y_position(g):
-    ans = len(main_arr[0])
-    for i in range(1, len(main_arr[0])):
-        if main_arr[i][g] != 0:
-            ans = min(ans, i)
-            return ans - 1
-    return -1
+    cur_last = 0
+    ans = []
+    for j in range(1, len(main_arr)):
+        if main_arr[j][g] != 0:
+            if (j - cur_last - 1) >= 3:
+                ans.append(j - 1)
+                cur_last = j
+            else:
+                cur_last = j
+    print(ans)
+    return random.choice(ans)
 
 
 def spawn_zombies(sprite_group, freq):
@@ -613,7 +619,7 @@ def spawn_zombies(sprite_group, freq):
             continue
         gui.add_element(Zombie(i, y, sprite_group))
     if freq > 3:
-        freq -= 0.5
+        freq -= 1
     return freq
 
 
