@@ -72,14 +72,14 @@ class Background:
             screen.blit(self.next_map[0], (self.x + len(main_arr[0]) * CELL_SIZE, self.y))
 
     def start_new_level(self):
-        global cam_speed
+        global cam_speed, frequency
         self.rep = False
         self.x = 0
         for i in all_sprites:
             if isinstance(i, Zombie):
                 gui.erase(i)
                 all_sprites.remove(i)
-        spawn_zombies(all_sprites, frequency)
+        frequency = spawn_zombies(all_sprites, frequency)
         if cam_speed < 6:
             cam_speed += 0.6
         gui.spawn_medkits()
@@ -620,7 +620,7 @@ def spawn_zombies(sprite_group, freq):
         if y is None:
             continue
         gui.add_element(Zombie(i, y, sprite_group))
-    if freq > 3:
+    if freq > 4:
         freq -= 1
     return freq
 
