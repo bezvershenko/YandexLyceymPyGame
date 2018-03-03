@@ -24,7 +24,7 @@ pygame.init()
 WHITE, GREEN, BLUE, RED, DARKBLUE, ORANGE = (255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0), (39, 45, 77), (
     250, 113, 36)
 CELL_SIZE = 32
-N_MAPS = 2
+N_MAPS = 3
 GRAVITY = 0.1
 PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png'), pygame.image.load(
     'buttons/mute1w.png'), pygame.image.load(
@@ -33,11 +33,10 @@ PAUSE, MUTE1, MUTE2, HEALTH, PARTICLES = pygame.image.load('buttons/pausew.png')
 SOUNDTRACK, PISTOL, OUTOFAMMO = 'music/soundtrack3.wav', 'music/pistol2.ogg', 'music/outofammo.ogg'
 MAPS = [[pygame.image.load('map/map{}.png'.format(str(i))), parse('map/map{}.json'.format(str(i)))] for i in
         range(1, N_MAPS + 1)]
-
+frequency = 6
 AIM = pygame.image.load('img_res/aim1w.png')
 MAIN_FONT = 'fonts/6551.ttf'
 CURSOR_BIG, CURSOR_SMALL = (40, 40), (30, 30)
-cam_speed, frequency, current_x = 10, 6, 0
 
 
 class Background:
@@ -81,8 +80,8 @@ class Background:
                 gui.erase(i)
                 all_sprites.remove(i)
         frequency = spawn_zombies(all_sprites, frequency)
-        if cam_speed < 5:
-            cam_speed += 0.7
+        if cam_speed < 6:
+            cam_speed += 0.6
         gui.spawn_medkits()
         level_counter.add()
         level_counter.show()
@@ -254,18 +253,17 @@ class Health:
         self.h = 50
 
     def render(self):
-
         pygame.draw.rect(screen, GREEN, (self.x, self.y, self.health, self.h))
         pygame.draw.rect(screen, WHITE, (self.x, self.y, 100, self.h), 3)
 
     def damage(self):
         global running
         if self.health - 5 > 0:
-            return
             self.health -= 5
         else:
             self.health = 0
             running = False
+        pass
 
     def heal(self):
         extra = random.choice([5, 10, 20, 25])
@@ -351,10 +349,10 @@ class Zombie(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.d = random.choice([0.1, -0.1])
-        #self.image = pygame.image.load(
+        # self.image = pygame.image.load(
         #    'appear/appear_{}.png'.format(1))
         self.image = pygame.Surface((0, 0))
-        #self.rect = self.image.get_rect()
+        # self.rect = self.image.get_rect()
         self.rect = pygame.image.load('appear/appear_{}.png'.format(1)).get_rect()
         self.rect.x = (self.x - 1) * CELL_SIZE
         self.rect.y = (self.y - 1) * CELL_SIZE - 16
@@ -472,7 +470,11 @@ class MedKit(pygame.sprite.Sprite):
         self.moving -= d
 
     def update(self):
-        self.rect.x = self.x + self.moving
+        if self.rect.x + CELL_SIZE > 0:
+            self.rect.x = self.x + self.moving
+        else:
+            gui.erase(self)
+            all_sprites.remove(self)
 
 
 class Particle(pygame.sprite.Sprite):
@@ -609,7 +611,6 @@ def find_y_position(g):
                 cur_last = j
             else:
                 cur_last = j
-    print(ans)
     return random.choice(ans)
 
 
@@ -619,7 +620,7 @@ def spawn_zombies(sprite_group, freq):
         if y is None:
             continue
         gui.add_element(Zombie(i, y, sprite_group))
-    if freq > 5:
+    if freq > 4:
         freq -= 1
     return freq
 
@@ -635,7 +636,7 @@ def create_particles(position):
 
 cur_map = random.choice(MAPS)
 main_arr = cur_map[1]
-size = WIDTH, HEIGHT = 700, (len(main_arr) * CELL_SIZE) - 2
+size = WIDTH, HEIGHT = 700, (len(main_arr) * CELL_SIZE)
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Zombie Shooting Range')
 pygame.display.set_icon(pygame.image.load('img_res/icon.png'))
@@ -649,6 +650,8 @@ soundtrack.play(loops=-1)
 start_screen()
 
 while True:
+
+    cam_speed, current_x = 2, 0
     gui = GUI()
     health = Health()
     gun = Gun()
@@ -686,6 +689,8 @@ while True:
         screen.fill(WHITE)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if counter.cnt > get_result('record.txt'):
+                    set_result('record.txt', counter.cnt)
                 sys.exit()
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -729,6 +734,7 @@ while True:
 
         pygame.display.flip()
         clock.tick(30)
+
     pygame.mouse.set_visible(True)
     buttons.remove(pause)
     game_over_screen(counter.cnt)
